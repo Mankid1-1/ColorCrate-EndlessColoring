@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AgeGroup, AppTier, ArtStyle, BookSize } from '../types';
-import { Sparkles, Zap, Lock, BookOpen } from 'lucide-react';
+import { Sparkles, Zap, Lock, BookOpen, Dice5 } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 
 interface GeneratorFormProps {
@@ -33,15 +33,44 @@ const SIZE_DESCRIPTIONS: Record<number, string> = {
   28: "A complete coloring book."
 };
 
+const THEME_IDEAS = [
+    "A magical dragon tea party",
+    "Space cats playing soccer",
+    "A treehouse city in the jungle",
+    "Underwater robots exploring a reef",
+    "A superhero dog saving a kitten",
+    "A castle made of ice cream",
+    "Pirate penguins on a treasure hunt"
+];
+
 export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoading, tier, onUpgrade }) => {
   const [theme, setTheme] = useState('');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>(AgeGroup.PRESCHOOL);
   const [style, setStyle] = useState<ArtStyle>(ArtStyle.CARTOON);
   const [bookSize, setBookSize] = useState<BookSize>(BookSize.SINGLE);
 
+  // Fix: Reset bookSize if tier changes to FREE and current size is > 1
+  useEffect(() => {
+    if (tier === AppTier.FREE && bookSize > 1) {
+        setBookSize(BookSize.SINGLE);
+    }
+  }, [tier, bookSize]);
+
   const handleSubmit = () => {
     if (!theme) return;
     onGenerate(theme, ageGroup, style, bookSize);
+  };
+
+  const handleRandomize = () => {
+      const randomTheme = THEME_IDEAS[Math.floor(Math.random() * THEME_IDEAS.length)];
+      const ageGroups = Object.values(AgeGroup);
+      const styles = Object.values(ArtStyle);
+
+      setTheme(randomTheme);
+      setAgeGroup(ageGroups[Math.floor(Math.random() * ageGroups.length)]);
+      setStyle(styles[Math.floor(Math.random() * styles.length)]);
+
+      // We don't randomize bookSize to avoid locking users out unexpectedly or defaulting to single always
   };
 
   return (
@@ -50,9 +79,20 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
         
         {/* Theme Section */}
         <div className="space-y-4">
-          <label className="flex items-center space-x-2 text-sm font-extrabold text-slate-800 uppercase tracking-wider">
-            <span className="bg-fun-yellow text-yellow-900 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-            <span>What do you want to create?</span>
+          <label className="flex items-center justify-between text-sm font-extrabold text-slate-800 uppercase tracking-wider">
+            <div className="flex items-center space-x-2">
+                <span className="bg-fun-yellow text-yellow-900 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                <span>What do you want to create?</span>
+            </div>
+            <Tooltip content="Surprise Me!">
+                <button
+                    onClick={handleRandomize}
+                    className="flex items-center gap-1 text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full hover:bg-brand-100 transition-colors"
+                >
+                    <Dice5 className="w-4 h-4" />
+                    <span>Randomize</span>
+                </button>
+            </Tooltip>
           </label>
           
           <Tooltip content="Describe your coloring page idea here!" position="top" className="w-full">
@@ -62,6 +102,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
                 placeholder="e.g. A robot baking a giant cake..."
+                aria-label="Theme description"
                 className="w-full px-6 py-5 rounded-2xl bg-slate-50 border-2 border-slate-100 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100 outline-none transition-all text-xl font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-medium"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-brand-500 transition-colors">
@@ -71,14 +112,15 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
           </Tooltip>
 
           {/* Inspiration Rail */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x" role="list" aria-label="Inspiration prompts">
             {INSPIRATION_PROMPTS.map((prompt) => (
               <Tooltip key={prompt.text} content="Click to use this idea">
                 <button
                   onClick={() => setTheme(prompt.text)}
-                  className="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all text-sm font-bold text-slate-600 shadow-sm active:scale-95"
+                  className="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all text-sm font-bold text-slate-600 shadow-sm active:scale-95 group"
+                  aria-label={`Use prompt: ${prompt.text}`}
                 >
-                  <span>{prompt.emoji}</span>
+                  <span className="group-hover:scale-125 transition-transform">{prompt.emoji}</span>
                   <span>{prompt.text}</span>
                 </button>
               </Tooltip>
@@ -95,11 +137,13 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 <span className="bg-fun-pink text-pink-900 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
                 <span>For who?</span>
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Target audience">
                 {Object.values(AgeGroup).map((age) => (
                   <Tooltip key={age} content={AGE_DESCRIPTIONS[age]} className="w-full h-full">
                     <button
                       onClick={() => setAgeGroup(age)}
+                      aria-checked={ageGroup === age}
+                      role="radio"
                       className={`w-full h-full px-3 py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                         ageGroup === age 
                           ? 'border-brand-500 bg-brand-50 text-brand-700' 
@@ -123,7 +167,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                     <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold">Pro unlocks larger books</span>
                 )}
               </label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Book size">
                 {[1, 4, 12, 28].map((size) => {
                    const isLocked = tier === AppTier.FREE && size > 1;
                    return (
@@ -131,6 +175,9 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                       <button 
                           disabled={isLocked}
                           onClick={() => setBookSize(size as BookSize)}
+                          aria-checked={bookSize === size}
+                          role="radio"
+                          aria-label={`${size} page${size > 1 ? 's' : ''}${isLocked ? ' (Locked)' : ''}`}
                           className={`w-full relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
                               bookSize === size && !isLocked
                               ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-sm ring-2 ring-brand-100 ring-offset-1' 
@@ -158,11 +205,13 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 <span className="bg-fun-blue text-blue-900 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
                 <span>Art Style</span>
             </label>
-            <div className="grid grid-cols-2 gap-2 h-64 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="grid grid-cols-2 gap-2 h-64 overflow-y-auto pr-1 custom-scrollbar" role="radiogroup" aria-label="Art style">
                 {Object.values(ArtStyle).map((s) => (
                     <Tooltip key={s} content={`Generate in ${s} style`} position="top" className="w-full">
                       <button 
                           onClick={() => setStyle(s)}
+                          aria-checked={style === s}
+                          role="radio"
                           className={`w-full p-3 rounded-xl border-2 text-left transition-all group ${
                               style === s 
                               ? 'border-brand-500 bg-brand-50' 

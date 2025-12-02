@@ -1,53 +1,140 @@
+import { useState, useEffect } from 'react';
+import { AppTier, Product, PurchaseStatus } from "../types";
 
-import { AppTier, Product } from "../types";
+// --- Types ---
 
-// This service mocks the Native Bridge (StoreKit/BillingClient)
-// In a real Cordova/Capacitor app, this would call native plugins.
+export interface Transaction {
+    id: string;
+    date: number;
+    productId: string;
+    amount: string;
+    status: 'completed' | 'refunded';
+}
 
-export const SUBSCRIPTION_PRODUCT: Product = {
-  id: 'com.colorcrate.pro.monthly',
-  title: 'ColorCrate Pro',
-  price: '$4.99',
-  description: 'Unlimited access to all features',
-  currency: 'USD'
+// --- Mock Data ---
+
+export const SUBSCRIPTION_PRODUCTS = {
+    MONTHLY: {
+        id: 'com.colorcrate.pro.monthly',
+        title: 'ColorCrate Pro Monthly',
+        price: '$4.99',
+        description: 'Unlimited access',
+        currency: 'USD',
+        interval: 'month'
+    },
+    YEARLY: {
+        id: 'com.colorcrate.pro.yearly',
+        title: 'ColorCrate Pro Yearly',
+        price: '$39.99',
+        description: 'Best Value',
+        currency: 'USD',
+        interval: 'year'
+    }
 };
 
-export const purchaseSubscription = async (): Promise<boolean> => {
-  return new Promise((resolve, reject) => {
-    console.log("[StoreKit] Initiating Purchase Flow...");
-    
-    // Simulate Network/Native Delay
-    setTimeout(() => {
-      // Randomly simulate user cancellation (for testing) or success
-      // For this demo, we always succeed.
-      const isSuccess = true;
-      
-      if (isSuccess) {
-        console.log("[StoreKit] Transaction Verified.");
-        resolve(true);
-      } else {
-        console.warn("[StoreKit] User Cancelled.");
-        reject(new Error("User cancelled transaction"));
-      }
-    }, 2500);
-  });
+// --- Service Functions (Mocking Native Layer) ---
+
+const MOCK_DELAY = 1500;
+
+const mockPurchase = async (productId: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            console.log(`[StoreKit] Purchased ${productId}`);
+            resolve(true);
+        }, MOCK_DELAY);
+    });
 };
 
-export const restorePurchases = async (): Promise<AppTier> => {
-  return new Promise((resolve) => {
-    console.log("[StoreKit] Restoring Receipts...");
-    
-    setTimeout(() => {
-      // Check local storage or remote DB for active sub
-      // Simulating a successful restore for demo purposes if they previously bought
-      const hasPreviousPurchase = localStorage.getItem('cc_has_purchased') === 'true';
-      
-      console.log(`[StoreKit] Restore Complete. Found: ${hasPreviousPurchase}`);
-      resolve(hasPreviousPurchase ? AppTier.PRO : AppTier.FREE);
-    }, 2000);
-  });
+const mockRestore = async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const hasPurchased = localStorage.getItem('cc_has_purchased') === 'true';
+            console.log(`[StoreKit] Restore found: ${hasPurchased}`);
+            resolve(hasPurchased);
+        }, MOCK_DELAY);
+    });
 };
 
-export const setPurchaseFlag = () => {
-  localStorage.setItem('cc_has_purchased', 'true');
+// --- Hook ---
+
+export const useStore = () => {
+    const [tier, setTier] = useState<AppTier>(AppTier.FREE);
+    const [status, setStatus] = useState<PurchaseStatus>('idle');
+    const [history, setHistory] = useState<Transaction[]>([]);
+
+    useEffect(() => {
+        // Initial check
+        const hasPurchased = localStorage.getItem('cc_has_purchased') === 'true';
+        if (hasPurchased) setTier(AppTier.PRO);
+        loadHistory();
+    }, []);
+
+    const loadHistory = () => {
+        try {
+            const hist = localStorage.getItem('cc_purchase_history');
+            if (hist) setHistory(JSON.parse(hist));
+        } catch (e) { console.error("Failed to load history"); }
+    };
+
+    const saveTransaction = (productId: string, price: string) => {
+        const newTx: Transaction = {
+            id: 'tx_' + Date.now(),
+            date: Date.now(),
+            productId,
+            amount: price,
+            status: 'completed'
+        };
+        const newHistory = [newTx, ...history];
+        setHistory(newHistory);
+        localStorage.setItem('cc_purchase_history', JSON.stringify(newHistory));
+    };
+
+    const purchase = async (product: typeof SUBSCRIPTION_PRODUCTS.MONTHLY) => {
+        setStatus('loading');
+        try {
+            const success = await mockPurchase(product.id);
+            if (success) {
+                localStorage.setItem('cc_has_purchased', 'true');
+                saveTransaction(product.id, product.price);
+                setTier(AppTier.PRO);
+                setStatus('success');
+            } else {
+                setStatus('error');
+            }
+        } catch (e) {
+            setStatus('error');
+        } finally {
+            setTimeout(() => setStatus('idle'), 2000);
+        }
+    };
+
+    const restore = async () => {
+        setStatus('loading');
+        try {
+            const success = await mockRestore();
+            if (success) {
+                setTier(AppTier.PRO);
+                setStatus('success'); // or idle immediately?
+                alert("Purchases restored!");
+            } else {
+                alert("No active subscription found.");
+                setStatus('idle');
+            }
+        } catch (e) {
+            setStatus('error');
+        } finally {
+             // Reset status after a moment if success
+             if (status === 'success') setTimeout(() => setStatus('idle'), 2000);
+             else setStatus('idle');
+        }
+    };
+
+    return {
+        tier,
+        status,
+        history,
+        purchase,
+        restore,
+        products: SUBSCRIPTION_PRODUCTS
+    };
 };
