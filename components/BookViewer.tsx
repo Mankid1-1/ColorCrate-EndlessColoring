@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PageData, AppTier } from '../types';
-import { Printer, Download, RefreshCw, Edit3, X, ZoomIn, Lock } from 'lucide-react';
+import { Printer, Download, RefreshCw, Edit3, X, ZoomIn, Lock, Share2, AlertTriangle } from 'lucide-react';
 import { CreativeEditor } from './CreativeEditor';
 import { Tooltip } from './Tooltip';
 
@@ -19,18 +19,34 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   const [focusedPageId, setFocusedPageId] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const focusedPage = pages.find(p => p.id === focusedPageId);
 
   const handlePrint = (page?: PageData) => {
-    const list = page ? [page] : pages;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    // Create a hidden iframe for printing to avoid opening new windows/tabs
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
 
-    printWindow.document.write(`
+    const list = page ? [page] : pages;
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    // Sanitize theme for title to prevent basic injection
+    const safeTitle = theme.replace(/[<>]/g, '');
+
+    doc.open();
+    doc.write(`
       <html>
         <head>
-          <title>${theme} - Coloring Book</title>
+          <title>${safeTitle} - Coloring Book</title>
           <style>
             @media print {
                @page { size: auto; margin: 0; }
@@ -39,26 +55,38 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                img { max-width: 90%; max-height: 90%; object-fit: contain; }
             }
             body { font-family: sans-serif; text-align: center; }
-            .no-print { padding: 20px; background: #f0fdfa; color: #0f766e; }
             .page { border: 1px dashed #ccc; margin: 20px auto; width: 210mm; height: 297mm; display: flex; align-items: center; justify-content: center; }
             img { max-width: 95%; max-height: 95%; }
           </style>
         </head>
         <body>
-          <div class="no-print">
-            <h1>Ready to Print!</h1>
-            <p>Press Ctrl+P / Cmd+P to print or save as PDF.</p>
-          </div>
-          ${list.map(p => `
-            <div class="page">
-              <img src="${p.modifiedUrl || p.originalUrl}" />
-            </div>
-          `).join('')}
-          <script>window.onload = () => setTimeout(() => window.print(), 500)</script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+
+    // Inject images safely using DOM methods instead of string interpolation
+    const body = doc.body;
+    list.forEach(p => {
+        const div = doc.createElement('div');
+        div.className = 'page';
+        const img = doc.createElement('img');
+        img.src = p.modifiedUrl || p.originalUrl;
+        img.onload = () => {
+             // Optional: notify parent
+        };
+        div.appendChild(img);
+        body.appendChild(div);
+    });
+
+    doc.close();
+
+    // Give a small delay for images to render in the iframe before printing
+    setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        // Remove iframe after print dialog closes (or sufficiently long timeout)
+        setTimeout(() => document.body.removeChild(iframe), 2000);
+    }, 500);
   };
 
   const handleDownload = (page: PageData) => {
@@ -68,10 +96,41 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     link.click();
   };
 
+  const handleShare = async (page: PageData) => {
+      if (navigator.share) {
+          try {
+              // Convert base64 to blob for sharing
+              const fetchRes = await fetch(page.modifiedUrl || page.originalUrl);
+              const blob = await fetchRes.blob();
+              const file = new File([blob], "coloring-page.png", { type: "image/png" });
+
+              await navigator.share({
+                  title: 'My Coloring Page',
+                  text: `Check out this ${theme} coloring page I made with ColorCrate!`,
+                  files: [file]
+              });
+          } catch (e) {
+              console.error("Error sharing", e);
+          }
+      } else {
+          // Fallback to clipboard copy
+          try {
+             await navigator.clipboard.writeText(window.location.href);
+             alert("Link copied to clipboard! (Image sharing not supported on this device)");
+          } catch (e) {
+             alert("Sharing not supported on this device.");
+          }
+      }
+  };
+
   const handleRegenerateClick = async (id: string) => {
       setRegeneratingId(id);
       await onRegeneratePage(id);
       setRegeneratingId(null);
+  };
+
+  const handleImageError = (id: string) => {
+      setFailedImages(prev => ({ ...prev, [id]: true }));
   };
 
   return (
@@ -98,11 +157,19 @@ export const BookViewer: React.FC<BookViewerProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {pages.map((page, idx) => (
             <div key={page.id} className="group relative aspect-[3/4] bg-white rounded-2xl shadow-sm border-2 border-slate-100 hover:border-brand-300 transition-all overflow-hidden hover:shadow-xl hover:-translate-y-1">
-                <img 
-                    src={page.modifiedUrl || page.originalUrl} 
-                    className="w-full h-full object-contain p-2" 
-                    alt={`Page ${idx+1}`} 
-                />
+                {failedImages[page.id] ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-slate-50 text-slate-400">
+                        <AlertTriangle className="w-8 h-8 mb-2 text-amber-500" />
+                        <span className="text-xs font-bold">Failed to load image</span>
+                    </div>
+                ) : (
+                    <img
+                        src={page.modifiedUrl || page.originalUrl}
+                        className="w-full h-full object-contain p-2"
+                        alt={`Page ${idx+1}`}
+                        onError={() => handleImageError(page.id)}
+                    />
+                )}
                 
                 {/* Number Badge */}
                 <div className="absolute top-3 left-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center font-black text-slate-400 text-xs shadow-sm border border-slate-100">
@@ -110,24 +177,26 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                 </div>
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                    <Tooltip content="View & Edit Page">
-                      <button 
-                          onClick={() => setFocusedPageId(page.id)}
-                          className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
-                      >
-                          <ZoomIn className="w-6 h-6" />
-                      </button>
-                    </Tooltip>
-                    <Tooltip content="Print This Page">
-                      <button 
-                          onClick={() => handlePrint(page)}
-                          className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
-                      >
-                          <Printer className="w-6 h-6" />
-                      </button>
-                    </Tooltip>
-                </div>
+                {!failedImages[page.id] && (
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                        <Tooltip content="View & Edit Page">
+                        <button
+                            onClick={() => setFocusedPageId(page.id)}
+                            className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
+                        >
+                            <ZoomIn className="w-6 h-6" />
+                        </button>
+                        </Tooltip>
+                        <Tooltip content="Print This Page">
+                        <button
+                            onClick={() => handlePrint(page)}
+                            className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
+                        >
+                            <Printer className="w-6 h-6" />
+                        </button>
+                        </Tooltip>
+                    </div>
+                )}
             </div>
         ))}
       </div>
@@ -194,25 +263,37 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
                     <div className="h-px bg-white/10 my-2"></div>
 
-                    <Tooltip content="Print just this page">
-                      <button 
-                          onClick={() => handlePrint(focusedPage)}
-                          className="w-full py-3 bg-white/5 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
-                      >
-                          <Printer className="w-5 h-5" />
-                          Print Page
-                      </button>
-                    </Tooltip>
+                    <div className="grid grid-cols-3 gap-2">
+                        <Tooltip content="Print">
+                        <button
+                            onClick={() => handlePrint(focusedPage)}
+                            className="w-full py-3 bg-white/5 rounded-xl font-medium flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition-colors"
+                        >
+                            <Printer className="w-5 h-5" />
+                            <span className="text-[10px]">Print</span>
+                        </button>
+                        </Tooltip>
 
-                    <Tooltip content="Save PNG to device">
-                      <button 
-                          onClick={() => handleDownload(focusedPage)}
-                          className="w-full py-3 bg-white/5 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
-                      >
-                          <Download className="w-5 h-5" />
-                          Download Image
-                      </button>
-                    </Tooltip>
+                        <Tooltip content="Download">
+                        <button
+                            onClick={() => handleDownload(focusedPage)}
+                            className="w-full py-3 bg-white/5 rounded-xl font-medium flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition-colors"
+                        >
+                            <Download className="w-5 h-5" />
+                            <span className="text-[10px]">Save</span>
+                        </button>
+                        </Tooltip>
+
+                        <Tooltip content="Share">
+                        <button
+                            onClick={() => handleShare(focusedPage)}
+                            className="w-full py-3 bg-white/5 rounded-xl font-medium flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition-colors"
+                        >
+                            <Share2 className="w-5 h-5" />
+                            <span className="text-[10px]">Share</span>
+                        </button>
+                        </Tooltip>
+                    </div>
                 </div>
             </div>
         </div>

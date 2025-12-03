@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { EditorItem, EditorTool } from '../types';
-import { MousePointer2, Type, Sticker, PenTool, Eraser, Check, X, Undo, Trash2 } from 'lucide-react';
+import { MousePointer2, Type, Sticker, PenTool, Eraser, Check, X, Undo, Trash2, Redo, RotateCw, RotateCcw } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 
 interface CreativeEditorProps {
@@ -17,6 +17,8 @@ const STICKERS = [
 export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImage, onClose, onSave }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [items, setItems] = useState<EditorItem[]>([]);
+  const [history, setHistory] = useState<EditorItem[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const [tool, setTool] = useState<EditorTool>('move');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
@@ -54,6 +56,36 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     }
   }, [items, pageId]);
 
+  // History Management
+  const addToHistory = (newItems: EditorItem[]) => {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newItems);
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+      setItems(newItems);
+  };
+
+  const handleUndo = () => {
+      if (historyIndex > 0) {
+          setHistoryIndex(historyIndex - 1);
+          setItems(history[historyIndex - 1]);
+          setSelectedId(null);
+      } else if (historyIndex === 0) {
+          // Initial state
+          setHistoryIndex(-1);
+          setItems([]);
+          setSelectedId(null);
+      }
+  };
+
+  const handleRedo = () => {
+      if (historyIndex < history.length - 1) {
+          setHistoryIndex(historyIndex + 1);
+          setItems(history[historyIndex + 1]);
+          setSelectedId(null);
+      }
+  };
+
   // Canvas Setup
   useEffect(() => {
     drawCanvas();
@@ -90,20 +122,18 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     // Load base image
     const img = new Image();
     img.src = baseImage;
-    img.crossOrigin = "anonymous"; // Helpful if dealing with external URLs in future
+    img.crossOrigin = "anonymous";
     
     // Draw background white first
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Draw Base
-    // Ensure image is loaded before drawing
     if (img.complete) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     } else {
         img.onload = () => {
              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-             // Trigger re-render of items on top if image loaded late
              drawItems(ctx);
         }
     }
@@ -116,12 +146,25 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
   const drawItems = (ctx: CanvasRenderingContext2D) => {
     items.forEach(item => {
         ctx.save();
-        if (item.type === 'path' && item.points) {
+        if (item.type === 'path' && item.points && item.points.length > 0) {
             ctx.beginPath();
-            ctx.moveTo(item.points[0].x, item.points[0].y);
-            for (let i = 1; i < item.points.length; i++) {
-                ctx.lineTo(item.points[i].x, item.points[i].y);
+
+            // Quadratic Curve Smoothing
+            if (item.points.length < 3) {
+                 ctx.moveTo(item.points[0].x, item.points[0].y);
+                 for (let i = 1; i < item.points.length; i++) {
+                     ctx.lineTo(item.points[i].x, item.points[i].y);
+                 }
+            } else {
+                ctx.moveTo(item.points[0].x, item.points[0].y);
+                for (let i = 1; i < item.points.length - 1; i++) {
+                    const xc = (item.points[i].x + item.points[i + 1].x) / 2;
+                    const yc = (item.points[i].y + item.points[i + 1].y) / 2;
+                    ctx.quadraticCurveTo(item.points[i].x, item.points[i].y, xc, yc);
+                }
+                ctx.lineTo(item.points[item.points.length - 1].x, item.points[item.points.length - 1].y);
             }
+
             ctx.strokeStyle = item.color;
             ctx.lineWidth = 5;
             ctx.lineCap = 'round';
@@ -130,6 +173,9 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
         } else {
             ctx.translate(item.x, item.y);
             ctx.scale(item.scale, item.scale);
+            if (item.rotation) {
+                ctx.rotate((item.rotation * Math.PI) / 180);
+            }
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
@@ -153,6 +199,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     // Draw Current Path (if drawing)
     if (currentPath.length > 0) {
         ctx.beginPath();
+        // Simple smoothing for preview
         ctx.moveTo(currentPath[0].x, currentPath[0].y);
         for (let i = 1; i < currentPath.length; i++) {
             ctx.lineTo(currentPath[i].x, currentPath[i].y);
@@ -173,7 +220,6 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
       } else if (tool === 'move') {
           const coords = getCanvasCoordinates(e);
           const hit = items.find(item => {
-              // Very rough hit test
               return Math.abs(item.x - coords.x) < 50 && Math.abs(item.y - coords.y) < 50;
           });
           if (hit) setSelectedId(hit.id);
@@ -215,56 +261,82 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
                 color: '#000000',
                 points: currentPath
             };
-            setItems([...items, newItem]);
+            addToHistory([...items, newItem]);
           }
           setCurrentPath([]);
+      } else if (tool === 'move' && selectedId) {
+         // Save state after move
+         // Note: optimize to avoid saving on every micro-move, only on release
+         // For now, we just save if something changed from history top
+         // Ideally compare deep equality but here we assume a move happened if selected
+         addToHistory([...items]);
       }
   };
 
   const addSticker = (emoji: string) => {
       const canvas = canvasRef.current;
-      setItems([...items, {
+      const newItem: EditorItem = {
           id: Date.now().toString(),
           type: 'sticker',
           content: emoji,
           x: canvas ? canvas.width / 2 : 100,
           y: canvas ? canvas.height / 2 : 100,
           scale: 1.5,
+          rotation: 0,
           color: '#000000'
-      }]);
+      };
+      addToHistory([...items, newItem]);
       setTool('move');
   };
 
   const addText = () => {
       if (!textInput.trim()) return;
       const canvas = canvasRef.current;
-      setItems([...items, {
+      const newItem: EditorItem = {
         id: Date.now().toString(),
         type: 'text',
         content: textInput,
         x: canvas ? canvas.width / 2 : 100,
         y: canvas ? canvas.height / 2 : 100,
         scale: 1,
+        rotation: 0,
         color: '#000000'
-      }]);
+      };
+      addToHistory([...items, newItem]);
       setTextInput('');
       setTool('move');
   };
 
   const handleDelete = () => {
       if (selectedId) {
-          setItems(items.filter(i => i.id !== selectedId));
+          addToHistory(items.filter(i => i.id !== selectedId));
           setSelectedId(null);
       }
   };
 
+  const handleRotate = (degrees: number) => {
+      if (selectedId) {
+          const newItems = items.map(item => {
+              if (item.id === selectedId) {
+                  return { ...item, rotation: (item.rotation || 0) + degrees };
+              }
+              return item;
+          });
+          setItems(newItems); // Update preview immediately
+          // Note: Ideally debounce this for history
+      }
+  };
+
+  // Commit rotation to history when done (optional, for now we manually button click so we can commit)
+  const commitRotate = () => {
+      addToHistory(items);
+  };
+
   const handleSave = () => {
     setSelectedId(null);
-    // Timeout to allow re-render without selection box
     setTimeout(() => {
         drawCanvas();
         if (canvasRef.current) {
-            // Remove draft from storage since we are baking it in
             localStorage.removeItem(STORAGE_KEY);
             onSave(canvasRef.current.toDataURL('image/png'));
         }
@@ -275,10 +347,36 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-slate-800 text-white">
-            <Tooltip content="Close without saving" position="bottom">
-              <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full"><X /></button>
-            </Tooltip>
-            <h3 className="font-bold">Creative Studio</h3>
+            <div className="flex items-center gap-4">
+                <Tooltip content="Close without saving" position="bottom">
+                  <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full"><X /></button>
+                </Tooltip>
+
+                {/* Undo / Redo */}
+                <div className="flex bg-slate-700 rounded-lg p-1 gap-1">
+                    <Tooltip content="Undo">
+                        <button
+                            onClick={handleUndo}
+                            disabled={historyIndex < 0}
+                            className={`p-2 rounded hover:bg-slate-600 ${historyIndex < 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        >
+                            <Undo className="w-5 h-5" />
+                        </button>
+                    </Tooltip>
+                    <Tooltip content="Redo">
+                        <button
+                            onClick={handleRedo}
+                            disabled={historyIndex >= history.length - 1}
+                            className={`p-2 rounded hover:bg-slate-600 ${historyIndex >= history.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        >
+                            <Redo className="w-5 h-5" />
+                        </button>
+                    </Tooltip>
+                </div>
+            </div>
+
+            <h3 className="font-bold hidden md:block">Creative Studio</h3>
+
             <Tooltip content="Save Changes">
               <button onClick={handleSave} className="px-6 py-2 bg-brand-500 rounded-full font-bold hover:bg-brand-400 flex items-center gap-2">
                   <Check className="w-4 h-4" /> Save
@@ -354,10 +452,23 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
                 )}
 
                 {tool === 'move' && selectedId && (
-                     <div className="flex justify-center">
+                     <div className="flex justify-center items-center gap-4">
+                        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                            <Tooltip content="Rotate Left">
+                                <button onClick={() => { handleRotate(-45); commitRotate(); }} className="p-2 hover:bg-white rounded shadow-sm">
+                                    <RotateCcw className="w-4 h-4 text-slate-600" />
+                                </button>
+                            </Tooltip>
+                            <Tooltip content="Rotate Right">
+                                <button onClick={() => { handleRotate(45); commitRotate(); }} className="p-2 hover:bg-white rounded shadow-sm">
+                                    <RotateCw className="w-4 h-4 text-slate-600" />
+                                </button>
+                            </Tooltip>
+                        </div>
+                        <div className="w-px h-8 bg-slate-200"></div>
                         <Tooltip content="Remove selected item">
-                          <button onClick={handleDelete} className="flex items-center gap-2 text-red-500 bg-red-50 px-6 py-2 rounded-xl font-bold border border-red-100">
-                              <Trash2 className="w-5 h-5" /> Delete Item
+                          <button onClick={handleDelete} className="flex items-center gap-2 text-red-500 bg-red-50 px-6 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100">
+                              <Trash2 className="w-5 h-5" /> Delete
                           </button>
                         </Tooltip>
                      </div>
