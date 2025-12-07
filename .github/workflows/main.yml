@@ -1,0 +1,9 @@
+# Auto-generated workflow for web_node on android
+name: android Build
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "Manual configuration required for web_node"
