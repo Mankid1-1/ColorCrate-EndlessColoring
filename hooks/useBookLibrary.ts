@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { BookState, PageData, AgeGroup, ArtStyle } from '../types';
+import localforage from 'localforage';
 
-const LIBRARY_KEY = 'cc_library_v1';
+const LIBRARY_STORE_NAME = 'cc_library_v1';
+
+// Configure localforage
+localforage.config({
+    name: 'ColorCrate',
+    storeName: 'books'
+});
 
 export interface BookSummary {
     id: string;
@@ -19,24 +26,31 @@ export const useBookLibrary = () => {
 
     // Load Library on Mount
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(LIBRARY_KEY);
-            if (saved) {
-                setBooks(JSON.parse(saved));
+        const loadLibrary = async () => {
+            try {
+                const saved = await localforage.getItem<Record<string, BookState>>(LIBRARY_STORE_NAME);
+                if (saved) {
+                    setBooks(saved);
+                }
+            } catch (e) {
+                console.error("Failed to load library from localforage", e);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (e) {
-            console.error("Failed to load library", e);
-        } finally {
-            setIsLoading(false);
-        }
+        };
+        loadLibrary();
     }, []);
 
-    // Save Library on Change
-    useEffect(() => {
-        if (!isLoading) {
-            localStorage.setItem(LIBRARY_KEY, JSON.stringify(books));
+    // Save Library on Change (Debounced slightly ideally, but here direct)
+    // We cannot use useEffect directly for saving efficiently with large blobs if updates are frequent.
+    // Ideally we save only the changed book. But for simplicity in this migration:
+    const saveLibrary = async (newBooks: Record<string, BookState>) => {
+        try {
+            await localforage.setItem(LIBRARY_STORE_NAME, newBooks);
+        } catch (e) {
+            console.error("Failed to save library", e);
         }
-    }, [books, isLoading]);
+    };
 
     const createBook = (theme: string, ageGroup: AgeGroup, style: ArtStyle) => {
         const newBook: BookState = {
@@ -49,7 +63,11 @@ export const useBookLibrary = () => {
         // Use timestamp as ID
         const id = Date.now().toString();
 
-        setBooks(prev => ({ ...prev, [id]: newBook }));
+        setBooks(prev => {
+            const next = { ...prev, [id]: newBook };
+            saveLibrary(next);
+            return next;
+        });
         setCurrentBookId(id);
         return id;
     };
@@ -62,10 +80,13 @@ export const useBookLibrary = () => {
             if (!current) return prev;
 
             const updated = updater(current);
-            return {
+            const next = {
                 ...prev,
                 [currentBookId]: { ...updated, lastUpdated: Date.now() }
             };
+            // Fire and forget save
+            saveLibrary(next);
+            return next;
         });
     };
 
@@ -73,6 +94,7 @@ export const useBookLibrary = () => {
         setBooks(prev => {
             const next = { ...prev };
             delete next[id];
+            saveLibrary(next);
             return next;
         });
         if (currentBookId === id) setCurrentBookId(null);
