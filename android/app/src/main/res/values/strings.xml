@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ColorCrate</string>
+    <string name="title_activity_main">ColorCrate</string>
+    <string name="package_name">com.colorcrate.app</string>
+    <string name="custom_url_scheme">com.colorcrate.app</string>
+</resources>
