@@ -49,7 +49,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
   const [style, setStyle] = useState<ArtStyle>(ArtStyle.CARTOON);
   const [bookSize, setBookSize] = useState<BookSize>(BookSize.SINGLE);
 
-  // Fix: Reset bookSize if tier changes to FREE and current size is > 1
+  // Reset bookSize if tier changes to FREE and current size is > 1
   useEffect(() => {
     if (tier === AppTier.FREE && bookSize > 1) {
         setBookSize(BookSize.SINGLE);
