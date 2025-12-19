@@ -29,13 +29,51 @@ const ai = new GoogleGenAI({ apiKey: apiKey || 'MISSING_KEY' });
 const distPath = path.resolve(__dirname, '../dist');
 app.use(express.static(distPath));
 
+// Allowed values for validation
+const ALLOWED_AGE_GROUPS = [
+  'Toddler (1-3)',
+  'Preschool (3-5)',
+  'School Age (5-10)',
+  'Teen/Adult (10+)'
+];
+
+const ALLOWED_STYLES = [
+  'Cute Cartoon',
+  'Realistic Nature',
+  'Mandala Pattern',
+  'Fantasy & Magic',
+  'Pixel Art',
+  'Minimalist',
+  'Abstract Shapes',
+  'Stained Glass',
+  'Super Kawaii',
+  'Comic Book Style'
+];
+
 // API Routes
 app.post('/api/generate', async (req, res) => {
     try {
         const { theme, ageGroup, style, tier, variationIndex = 0 } = req.body;
 
+        // Input Validation
         if (!theme || !ageGroup || !style) {
             return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        if (typeof theme !== 'string' || theme.length > 200) {
+            return res.status(400).json({ error: "Invalid theme (max 200 chars)" });
+        }
+
+        if (!ALLOWED_AGE_GROUPS.includes(ageGroup)) {
+            return res.status(400).json({ error: "Invalid age group" });
+        }
+
+        if (!ALLOWED_STYLES.includes(style)) {
+            return res.status(400).json({ error: "Invalid style" });
+        }
+
+        if (typeof variationIndex !== 'number') {
+             return res.status(400).json({ error: "Invalid variation index" });
         }
 
         const isPro = tier === 'PRO';
