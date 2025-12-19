@@ -168,6 +168,8 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                         className="w-full h-full object-contain p-2"
                         alt={`Page ${idx+1}`}
                         onError={() => handleImageError(page.id)}
+                        loading="lazy"
+                        decoding="async"
                     />
                 )}
                 
