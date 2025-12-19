@@ -315,7 +315,12 @@ const BookCard: React.FC<{ book: BookSummary, onClick: () => void, onDelete: () 
     >
         <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
             {book.coverImage ? (
-                <img src={book.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img
+                    src={book.coverImage}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    decoding="async"
+                />
             ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-300">
                     <BookOpen className="w-12 h-12" />
