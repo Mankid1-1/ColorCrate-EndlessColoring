@@ -170,17 +170,26 @@ const App: React.FC = () => {
       <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200/60 safe-top">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <Tooltip content="Back to Library" position="bottom">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToLibrary}>
+                <button
+                    type="button"
+                    className="flex items-center gap-2"
+                    onClick={handleBackToLibrary}
+                    aria-label="Back to Library"
+                >
                     <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30 transform hover:rotate-12 transition-transform cursor-pointer">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </div>
                     <span className="font-extrabold text-2xl tracking-tight text-slate-800 hidden md:block">Color<span className="text-brand-600">Crate</span></span>
-                </div>
+                </button>
             </Tooltip>
             
             <div className="flex items-center gap-4">
                 {view === 'book' && (
-                     <button onClick={handleBackToLibrary} className="md:hidden p-2 text-slate-500 hover:text-slate-800">
+                     <button
+                         onClick={handleBackToLibrary}
+                         className="md:hidden p-2 text-slate-500 hover:text-slate-800"
+                         aria-label="Back to Library"
+                     >
                          <LayoutGrid className="w-6 h-6" />
                      </button>
                 )}
