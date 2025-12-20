@@ -173,21 +173,20 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                    return (
                     <Tooltip key={size} content={isLocked ? "Upgrade to unlock" : SIZE_DESCRIPTIONS[size]} className="w-full">
                       <button 
-                          disabled={isLocked}
-                          onClick={() => setBookSize(size as BookSize)}
+                          onClick={() => isLocked ? onUpgrade() : setBookSize(size as BookSize)}
                           aria-checked={bookSize === size}
                           role="radio"
-                          aria-label={`${size} page${size > 1 ? 's' : ''}${isLocked ? ' (Locked)' : ''}`}
+                          aria-label={isLocked ? `Unlock ${size} pages with Pro` : `${size} page${size > 1 ? 's' : ''}`}
                           className={`w-full relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
                               bookSize === size && !isLocked
                               ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-sm ring-2 ring-brand-100 ring-offset-1' 
                               : 'border-slate-100 bg-white text-slate-400'
-                          } ${!isLocked && 'hover:border-brand-200'} ${isLocked && 'opacity-60 cursor-not-allowed bg-slate-50'}`}
+                          } ${!isLocked && 'hover:border-brand-200'} ${isLocked && 'opacity-60 cursor-pointer bg-slate-50 hover:bg-slate-100'}`}
                       >
                           <span className="font-black text-xl">{size}</span>
                           <span className="text-[10px] font-bold uppercase">Pages</span>
                           {isLocked && (
-                              <div onClick={(e) => { e.stopPropagation(); onUpgrade(); }} className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px] cursor-pointer hover:bg-white/30 rounded-xl">
+                              <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px] rounded-xl">
                                   <Lock className="w-4 h-4 text-slate-400" />
                               </div>
                           )}
