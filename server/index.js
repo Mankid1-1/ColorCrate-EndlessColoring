@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,6 +17,16 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Rate Limiter for Generation Endpoint
+// Limit to 10 requests per minute per IP to prevent abuse and manage API costs
+const generateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 10,
+  message: { error: 'Too many generation requests, please try again later.' },
+  standardHeaders: 'draft-8', // draft-6: `RateLimit-*` headers; draft-7 & 8: combined `RateLimit` header
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 // API Key Validation
 const apiKey = process.env.GEMINI_API_KEY;
@@ -51,7 +62,7 @@ const ALLOWED_STYLES = [
 ];
 
 // API Routes
-app.post('/api/generate', async (req, res) => {
+app.post('/api/generate', generateLimiter, async (req, res) => {
     try {
         const { theme, ageGroup, style, tier, variationIndex = 0 } = req.body;
 
