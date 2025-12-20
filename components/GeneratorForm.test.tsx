@@ -46,12 +46,13 @@ describe('GeneratorForm', () => {
     const size1Button = screen.getByLabelText(/1 page/i);
 
     // For size 4, it should be locked. The aria-label is constructed as:
-    // `${size} page${size > 1 ? 's' : ''}${isLocked ? ' (Locked)' : ''}`
-    // So for size 4 locked: "4 pages (Locked)"
-    const size4ButtonLocked = screen.getByLabelText(/4 pages \(Locked\)/i);
+    // `Unlock ${size} pages with Pro`
+    // So for size 4 locked: "Unlock 4 pages with Pro"
+    const size4ButtonLocked = screen.getByLabelText(/Unlock 4 pages with Pro/i);
 
     expect(size1Button).toHaveAttribute('aria-checked', 'true');
     expect(size4ButtonLocked).toHaveAttribute('aria-checked', 'false');
-    expect(size4ButtonLocked).toBeDisabled();
+    // It should NOT be disabled anymore, so we can click it to upgrade
+    expect(size4ButtonLocked).toBeEnabled();
   });
 });
