@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BookState, PageData, AgeGroup, ArtStyle } from '../types';
 import localforage from 'localforage';
 
@@ -52,7 +52,7 @@ export const useBookLibrary = () => {
         }
     };
 
-    const createBook = (theme: string, ageGroup: AgeGroup, style: ArtStyle) => {
+    const createBook = useCallback((theme: string, ageGroup: AgeGroup, style: ArtStyle) => {
         const newBook: BookState = {
             theme,
             ageGroup,
@@ -70,9 +70,9 @@ export const useBookLibrary = () => {
         });
         setCurrentBookId(id);
         return id;
-    };
+    }, []);
 
-    const updateCurrentBook = (updater: (prev: BookState) => BookState) => {
+    const updateCurrentBook = useCallback((updater: (prev: BookState) => BookState) => {
         if (!currentBookId) return;
 
         setBooks(prev => {
@@ -88,9 +88,9 @@ export const useBookLibrary = () => {
             saveLibrary(next);
             return next;
         });
-    };
+    }, [currentBookId]);
 
-    const deleteBook = (id: string) => {
+    const deleteBook = useCallback((id: string) => {
         setBooks(prev => {
             const next = { ...prev };
             delete next[id];
@@ -98,9 +98,11 @@ export const useBookLibrary = () => {
             return next;
         });
         if (currentBookId === id) setCurrentBookId(null);
-    };
+    }, [currentBookId]);
 
-    const getBookSummaries = (): BookSummary[] => {
+    const closeBook = useCallback(() => setCurrentBookId(null), []);
+
+    const library = useMemo(() => {
         return Object.entries(books).map(([id, book]) => ({
             id,
             title: book.theme,
@@ -109,17 +111,17 @@ export const useBookLibrary = () => {
             createdAt: parseInt(id), // ID is timestamp
             lastUpdated: book.lastUpdated
         })).sort((a, b) => b.lastUpdated - a.lastUpdated);
-    };
+    }, [books]);
 
     return {
         currentBook: currentBookId ? books[currentBookId] : null,
         currentBookId,
-        library: getBookSummaries(),
+        library,
         isLoading,
         openBook: setCurrentBookId,
         createBook,
         updateCurrentBook,
         deleteBook,
-        closeBook: () => setCurrentBookId(null)
+        closeBook
     };
 };

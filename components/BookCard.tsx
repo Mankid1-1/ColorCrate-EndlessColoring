@@ -1,0 +1,55 @@
+import React from 'react';
+import { BookOpen, Clock, Trash2 } from 'lucide-react';
+import { BookSummary } from '../hooks/useBookLibrary';
+
+interface BookCardProps {
+    book: BookSummary;
+    onOpen: (id: string) => void;
+    onDelete: (id: string) => void;
+}
+
+export const BookCard = React.memo<BookCardProps>(({ book, onOpen, onDelete }) => (
+    <div
+        className="group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:border-brand-200 transition-all cursor-pointer relative"
+        onClick={() => onOpen(book.id)}
+    >
+        <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
+            {book.coverImage ? (
+                <img
+                    src={book.coverImage}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    decoding="async"
+                    alt={book.title}
+                />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <BookOpen className="w-12 h-12" />
+                </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </div>
+        <div className="p-5">
+            <h3 className="font-bold text-lg text-slate-800 line-clamp-1 mb-1">{book.title}</h3>
+            <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+                <span className="flex items-center gap-1">
+                    <BookOpen className="w-3 h-3" />
+                    {book.pageCount} Pages
+                </span>
+                <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {new Date(book.lastUpdated).toLocaleDateString()}
+                </span>
+            </div>
+        </div>
+        <button
+            onClick={(e) => { e.stopPropagation(); onDelete(book.id); }}
+            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+            aria-label="Delete book"
+        >
+            <Trash2 className="w-4 h-4" />
+        </button>
+    </div>
+));
+
+BookCard.displayName = 'BookCard';
