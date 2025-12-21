@@ -15,6 +15,9 @@ dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Security: Trust the first proxy (e.g. load balancer) so rate limiting works correctly
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 
@@ -164,7 +167,8 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
 
     } catch (error) {
         console.error("[Server] Generation Error:", error);
-        res.status(500).json({ error: error.message || "Failed to generate image" });
+        // Security: Don't leak internal error details to the client
+        res.status(500).json({ error: "Failed to generate image. Please try again later." });
     }
 });
 
