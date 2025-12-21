@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { BookState, PageData, AgeGroup, ArtStyle } from '../types';
 import localforage from 'localforage';
 
@@ -23,6 +23,7 @@ export const useBookLibrary = () => {
     const [books, setBooks] = useState<Record<string, BookState>>({});
     const [currentBookId, setCurrentBookId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Load Library on Mount
     useEffect(() => {
@@ -41,16 +42,20 @@ export const useBookLibrary = () => {
         loadLibrary();
     }, []);
 
-    // Save Library on Change (Debounced slightly ideally, but here direct)
-    // We cannot use useEffect directly for saving efficiently with large blobs if updates are frequent.
-    // Ideally we save only the changed book. But for simplicity in this migration:
-    const saveLibrary = async (newBooks: Record<string, BookState>) => {
-        try {
-            await localforage.setItem(LIBRARY_STORE_NAME, newBooks);
-        } catch (e) {
-            console.error("Failed to save library", e);
+    // Save Library on Change (Debounced)
+    const saveLibrary = useCallback((newBooks: Record<string, BookState>) => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
         }
-    };
+
+        saveTimeoutRef.current = setTimeout(async () => {
+            try {
+                await localforage.setItem(LIBRARY_STORE_NAME, newBooks);
+            } catch (e) {
+                console.error("Failed to save library", e);
+            }
+        }, 1000); // 1 second debounce to prevent freezing on rapid updates
+    }, []);
 
     const createBook = useCallback((theme: string, ageGroup: AgeGroup, style: ArtStyle) => {
         const newBook: BookState = {
@@ -70,7 +75,7 @@ export const useBookLibrary = () => {
         });
         setCurrentBookId(id);
         return id;
-    }, []);
+    }, [saveLibrary]);
 
     const updateCurrentBook = useCallback((updater: (prev: BookState) => BookState) => {
         if (!currentBookId) return;
@@ -84,11 +89,10 @@ export const useBookLibrary = () => {
                 ...prev,
                 [currentBookId]: { ...updated, lastUpdated: Date.now() }
             };
-            // Fire and forget save
             saveLibrary(next);
             return next;
         });
-    }, [currentBookId]);
+    }, [currentBookId, saveLibrary]);
 
     const deleteBook = useCallback((id: string) => {
         setBooks(prev => {
@@ -98,7 +102,7 @@ export const useBookLibrary = () => {
             return next;
         });
         if (currentBookId === id) setCurrentBookId(null);
-    }, [currentBookId]);
+    }, [currentBookId, saveLibrary]);
 
     const closeBook = useCallback(() => setCurrentBookId(null), []);
 

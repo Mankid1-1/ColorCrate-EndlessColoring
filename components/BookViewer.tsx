@@ -13,7 +13,7 @@ interface BookViewerProps {
   onUpgrade: () => void;
 }
 
-export const BookViewer: React.FC<BookViewerProps> = ({ 
+export const BookViewer: React.FC<BookViewerProps> = React.memo(({
   pages, theme, tier, onRegeneratePage, onUpdatePage, onUpgrade 
 }) => {
   const [focusedPageId, setFocusedPageId] = useState<string | null>(null);
@@ -315,4 +315,6 @@ export const BookViewer: React.FC<BookViewerProps> = ({
       )}
     </div>
   );
-};
+});
+
+BookViewer.displayName = 'BookViewer';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AgeGroup, AppTier, ArtStyle, BookSize, PageData } from './types';
 import { generateColoringPage } from './services/geminiService';
 import { useStore } from './services/storeService';
@@ -125,7 +125,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRegenerateSinglePage = async (pageId: string) => {
+  const handleRegenerateSinglePage = useCallback(async (pageId: string) => {
       if (!currentBook) return;
       const pageIndex = currentBook.pages.findIndex(p => p.id === pageId);
       if (pageIndex === -1) return;
@@ -151,18 +151,20 @@ const App: React.FC = () => {
       } catch (e) {
           console.error("Failed to regenerate page", e);
       }
-  };
+  }, [currentBook, tier, updateCurrentBook]);
 
-  const handleUpdatePage = (pageId: string, newUrl: string) => {
+  const handleUpdatePage = useCallback((pageId: string, newUrl: string) => {
       updateCurrentBook(prev => ({
           ...prev,
           pages: prev.pages.map(p => p.id === pageId ? { ...p, modifiedUrl: newUrl } : p)
       }));
-  };
+  }, [updateCurrentBook]);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = useCallback(async () => {
       await purchase(products.MONTHLY);
-  };
+  }, [purchase, products]);
+
+  const handleOpenUpgradeModal = useCallback(() => setShowUpgradeModal(true), []);
 
   return (
     <div className="min-h-screen font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900 pb-20 md:pb-0">
@@ -277,7 +279,7 @@ const App: React.FC = () => {
                                 onGenerate={handleGenerate}
                                 isLoading={loading}
                                 tier={tier}
-                                onUpgrade={() => setShowUpgradeModal(true)}
+                                onUpgrade={handleOpenUpgradeModal}
                             />
                         </div>
                     </div>
@@ -291,7 +293,7 @@ const App: React.FC = () => {
                         tier={tier}
                         onRegeneratePage={handleRegenerateSinglePage}
                         onUpdatePage={handleUpdatePage}
-                        onUpgrade={() => setShowUpgradeModal(true)}
+                        onUpgrade={handleOpenUpgradeModal}
                     />
                 )}
             </>
