@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { PageData, AppTier } from '../types';
-import { Printer, Download, RefreshCw, Edit3, X, ZoomIn, Lock, Share2, AlertTriangle } from 'lucide-react';
+import { Printer, Download, RefreshCw, Edit3, X, Share2, Lock } from 'lucide-react';
 import { CreativeEditor } from './CreativeEditor';
 import { Tooltip } from './Tooltip';
+import { BookPageThumbnail } from './BookPageThumbnail';
 
 interface BookViewerProps {
   pages: PageData[];
@@ -23,7 +24,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
 
   const focusedPage = pages.find(p => p.id === focusedPageId);
 
-  const handlePrint = (page?: PageData) => {
+  const handlePrint = useCallback((page?: PageData) => {
     // Create a hidden iframe for printing to avoid opening new windows/tabs
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -87,16 +88,16 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
         // Remove iframe after print dialog closes (or sufficiently long timeout)
         setTimeout(() => document.body.removeChild(iframe), 2000);
     }, 500);
-  };
+  }, [pages, theme]);
 
-  const handleDownload = (page: PageData) => {
+  const handleDownload = useCallback((page: PageData) => {
     const link = document.createElement('a');
     link.href = page.modifiedUrl || page.originalUrl;
     link.download = `ColorCrate-${theme.replace(/\s+/g, '-')}-${page.id}.png`;
     link.click();
-  };
+  }, [theme]);
 
-  const handleShare = async (page: PageData) => {
+  const handleShare = useCallback(async (page: PageData) => {
       if (navigator.share) {
           try {
               // Convert base64 to blob for sharing
@@ -121,17 +122,21 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
              alert("Sharing not supported on this device.");
           }
       }
-  };
+  }, [theme]);
 
-  const handleRegenerateClick = async (id: string) => {
+  const handleRegenerateClick = useCallback(async (id: string) => {
       setRegeneratingId(id);
       await onRegeneratePage(id);
       setRegeneratingId(null);
-  };
+  }, [onRegeneratePage]);
 
-  const handleImageError = (id: string) => {
+  const handleImageError = useCallback((id: string) => {
       setFailedImages(prev => ({ ...prev, [id]: true }));
-  };
+  }, []);
+
+  const handleFocusPage = useCallback((id: string) => {
+    setFocusedPageId(id);
+  }, []);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -156,50 +161,15 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
       {/* Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {pages.map((page, idx) => (
-            <div key={page.id} className="group relative aspect-[3/4] bg-white rounded-2xl shadow-sm border-2 border-slate-100 hover:border-brand-300 transition-all overflow-hidden hover:shadow-xl hover:-translate-y-1">
-                {failedImages[page.id] ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-slate-50 text-slate-400">
-                        <AlertTriangle className="w-8 h-8 mb-2 text-amber-500" />
-                        <span className="text-xs font-bold">Failed to load image</span>
-                    </div>
-                ) : (
-                    <img
-                        src={page.modifiedUrl || page.originalUrl}
-                        className="w-full h-full object-contain p-2"
-                        alt={`Page ${idx+1}`}
-                        onError={() => handleImageError(page.id)}
-                        loading="lazy"
-                        decoding="async"
-                    />
-                )}
-                
-                {/* Number Badge */}
-                <div className="absolute top-3 left-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center font-black text-slate-400 text-xs shadow-sm border border-slate-100">
-                    {idx + 1}
-                </div>
-
-                {/* Hover Overlay */}
-                {!failedImages[page.id] && (
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                        <Tooltip content="View & Edit Page">
-                        <button
-                            onClick={() => setFocusedPageId(page.id)}
-                            className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
-                        >
-                            <ZoomIn className="w-6 h-6" />
-                        </button>
-                        </Tooltip>
-                        <Tooltip content="Print This Page">
-                        <button
-                            onClick={() => handlePrint(page)}
-                            className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
-                        >
-                            <Printer className="w-6 h-6" />
-                        </button>
-                        </Tooltip>
-                    </div>
-                )}
-            </div>
+            <BookPageThumbnail
+                key={page.id}
+                page={page}
+                index={idx}
+                isFailed={!!failedImages[page.id]}
+                onImageError={handleImageError}
+                onFocus={handleFocusPage}
+                onPrint={handlePrint}
+            />
         ))}
       </div>
 
