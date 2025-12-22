@@ -78,6 +78,9 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
             return res.status(400).json({ error: "Invalid theme (max 200 chars)" });
         }
 
+        // SANITIZATION: Remove control characters and newlines to prevent prompt injection
+        const sanitizedTheme = theme.replace(/[\r\n\x00-\x1F\x7F]/g, " ").trim();
+
         if (!ALLOWED_AGE_GROUPS.includes(ageGroup)) {
             return res.status(400).json({ error: "Invalid age group" });
         }
@@ -105,7 +108,7 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
     Generate a single, high-contrast, black-and-white coloring page image.
 
     [CONTENT SPECIFICATION]
-    - SUBJECT: ${theme}
+    - SUBJECT: ${sanitizedTheme}
     - VARIATION: This is page #${variationIndex + 1} of a book. Ensure unique composition.
     - TARGET AUDIENCE: ${ageGroup}
     - STYLE MODIFIER: ${style}
@@ -135,7 +138,7 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
         // @ts-ignore - SDK types might be slighty off in this context but this is valid
         if (isPro) { imageConfig.imageSize = "2K"; }
 
-        console.log(`[Server] Generating for "${theme}" using ${modelName}`);
+        console.log(`[Server] Generating for "${sanitizedTheme}" (Original: "${theme}") using ${modelName}`);
 
         const response = await ai.models.generateContent({
             model: modelName,
