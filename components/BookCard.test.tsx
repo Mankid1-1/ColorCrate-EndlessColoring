@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import { BookCard } from './BookCard';
 import { BookSummary } from '../hooks/useBookLibrary';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -52,18 +52,26 @@ describe('BookCard', () => {
     expect(mockOnOpen).toHaveBeenCalledWith('1');
   });
 
-  it('calls onDelete when the delete button is clicked', () => {
+  it('calls onDelete only after confirmation', async () => {
     render(<BookCard book={mockBook} onOpen={mockOnOpen} onDelete={mockOnDelete} />);
     // Find the delete button
     const deleteButton = screen.getByLabelText(/Delete Test Book/i);
-    deleteButton.click();
+
+    // First click: triggers confirmation state
+    fireEvent.click(deleteButton);
+    expect(mockOnDelete).not.toHaveBeenCalled();
+    expect(await screen.findByText('Confirm?')).toBeTruthy();
+
+    // Second click: actually deletes
+    fireEvent.click(deleteButton);
     expect(mockOnDelete).toHaveBeenCalledWith('1');
   });
 
   it('does not trigger onOpen when delete is clicked', () => {
     render(<BookCard book={mockBook} onOpen={mockOnOpen} onDelete={mockOnDelete} />);
     const deleteButton = screen.getByLabelText(/Delete Test Book/i);
-    deleteButton.click();
+    fireEvent.click(deleteButton);
+    fireEvent.click(deleteButton);
     expect(mockOnDelete).toHaveBeenCalled();
     expect(mockOnOpen).not.toHaveBeenCalled();
   });
