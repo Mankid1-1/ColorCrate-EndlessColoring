@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI } from '@google/genai';
@@ -17,6 +18,13 @@ const PORT = process.env.PORT || 3000;
 
 // Security: Trust the first proxy (e.g. load balancer) so rate limiting works correctly
 app.set('trust proxy', 1);
+
+// Security: Add Helmet for security headers
+// Note: Content Security Policy is disabled to avoid breaking CDN loading (Tailwind, Fonts)
+// and inline scripts/styles which are currently used in index.html.
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 
 app.use(cors());
 app.use(express.json());
