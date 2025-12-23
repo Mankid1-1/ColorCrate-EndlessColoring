@@ -24,7 +24,8 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
 
   const focusedPage = pages.find(p => p.id === focusedPageId);
 
-  const handlePrint = useCallback((page?: PageData) => {
+  // Shared print logic that doesn't depend on 'pages' from closure unless passed
+  const performPrint = useCallback((pagesToPrint: PageData[]) => {
     // Create a hidden iframe for printing to avoid opening new windows/tabs
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -34,8 +35,6 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
     iframe.style.height = '0';
     iframe.style.border = '0';
     document.body.appendChild(iframe);
-
-    const list = page ? [page] : pages;
 
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
@@ -67,7 +66,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
 
     // Inject images safely using DOM methods instead of string interpolation
     const body = doc.body;
-    list.forEach(p => {
+    pagesToPrint.forEach(p => {
         const div = doc.createElement('div');
         div.className = 'page';
         const img = doc.createElement('img');
@@ -88,7 +87,18 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
         // Remove iframe after print dialog closes (or sufficiently long timeout)
         setTimeout(() => document.body.removeChild(iframe), 2000);
     }, 500);
-  }, [pages, theme]);
+  }, [theme]);
+
+  // Handle printing the full book - depends on 'pages'
+  const handlePrintBook = useCallback(() => {
+    performPrint(pages);
+  }, [pages, performPrint]);
+
+  // Handle printing a single page - depends only on stable 'performPrint' (and theme inside it)
+  // This ensures that BookPageThumbnail doesn't re-render when other pages are added/modified
+  const handlePrintPage = useCallback((page: PageData) => {
+    performPrint([page]);
+  }, [performPrint]);
 
   const handleDownload = useCallback((page: PageData) => {
     const link = document.createElement('a');
@@ -149,7 +159,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
         </div>
         <Tooltip content="Print all pages as a PDF book">
           <button 
-             onClick={() => handlePrint()}
+             onClick={handlePrintBook}
              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-300"
           >
              <Printer className="w-5 h-5" />
@@ -168,7 +178,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
                 isFailed={!!failedImages[page.id]}
                 onImageError={handleImageError}
                 onFocus={handleFocusPage}
-                onPrint={handlePrint}
+                onPrint={handlePrintPage}
             />
         ))}
       </div>
@@ -238,7 +248,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
                     <div className="grid grid-cols-3 gap-2">
                         <Tooltip content="Print">
                         <button
-                            onClick={() => handlePrint(focusedPage)}
+                            onClick={() => handlePrintPage(focusedPage)}
                             className="w-full py-3 bg-white/5 rounded-xl font-medium flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition-colors"
                         >
                             <Printer className="w-5 h-5" />
