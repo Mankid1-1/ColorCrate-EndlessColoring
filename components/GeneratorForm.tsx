@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AgeGroup, AppTier, ArtStyle, BookSize } from '../types';
-import { Sparkles, Zap, Lock, BookOpen, Dice5 } from 'lucide-react';
+import { Sparkles, Zap, Lock, BookOpen, Dice5, X } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 
 interface GeneratorFormProps {
@@ -105,8 +105,27 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 aria-label="Theme description"
                 className="w-full px-6 py-5 rounded-2xl bg-slate-50 border-2 border-slate-100 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100 outline-none transition-all text-xl font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-medium"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-brand-500 transition-colors">
-                <Sparkles className="w-6 h-6" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors">
+                {theme ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTheme('');
+                      // Return focus to input for better UX
+                      const input = document.querySelector('input[aria-label="Theme description"]') as HTMLInputElement;
+                      input?.focus();
+                    }}
+                    className="p-1 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    aria-label="Clear theme"
+                    title="Clear"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <div className="text-slate-300 pointer-events-none group-focus-within:text-brand-500">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                )}
               </div>
             </div>
           </Tooltip>
