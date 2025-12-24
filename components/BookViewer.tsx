@@ -203,6 +203,9 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
                     <img 
                         src={focusedPage.modifiedUrl || focusedPage.originalUrl} 
                         className={`max-w-full max-h-full object-contain bg-white rounded-lg shadow-2xl ${regeneratingId === focusedPage.id ? 'opacity-50 blur-sm' : ''}`}
+                        fetchPriority="high"
+                        loading="eager"
+                        decoding="sync"
                     />
                     {regeneratingId === focusedPage.id && (
                         <div className="absolute inset-0 flex items-center justify-center">

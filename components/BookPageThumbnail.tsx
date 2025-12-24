@@ -34,6 +34,7 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
                 onError={() => onImageError(page.id)}
                 loading="lazy"
                 decoding="async"
+                fetchPriority="low"
             />
         )}
 
