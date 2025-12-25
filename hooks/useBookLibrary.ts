@@ -25,6 +25,9 @@ export const useBookLibrary = () => {
     const [isLoading, setIsLoading] = useState(true);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Cache for stable book summaries to prevent list re-renders
+    const summaryCache = useRef<WeakMap<BookState, BookSummary>>(new WeakMap());
+
     // Load Library on Mount
     useEffect(() => {
         const loadLibrary = async () => {
@@ -107,14 +110,24 @@ export const useBookLibrary = () => {
     const closeBook = useCallback(() => setCurrentBookId(null), []);
 
     const library = useMemo(() => {
-        return Object.entries(books).map(([id, book]) => ({
-            id,
-            title: book.theme,
-            coverImage: book.pages.length > 0 ? (book.pages[0].modifiedUrl || book.pages[0].originalUrl) : null,
-            pageCount: book.pages.length,
-            createdAt: parseInt(id), // ID is timestamp
-            lastUpdated: book.lastUpdated
-        })).sort((a, b) => b.lastUpdated - a.lastUpdated);
+        return Object.entries(books).map(([id, book]) => {
+            // Check cache for existing summary of this exact book object
+            let summary = summaryCache.current.get(book);
+
+            if (!summary) {
+                // Create and cache new summary if not found
+                summary = {
+                    id,
+                    title: book.theme,
+                    coverImage: book.pages.length > 0 ? (book.pages[0].modifiedUrl || book.pages[0].originalUrl) : null,
+                    pageCount: book.pages.length,
+                    createdAt: parseInt(id), // ID is timestamp
+                    lastUpdated: book.lastUpdated
+                };
+                summaryCache.current.set(book, summary);
+            }
+            return summary;
+        }).sort((a, b) => b.lastUpdated - a.lastUpdated);
     }, [books]);
 
     return {
