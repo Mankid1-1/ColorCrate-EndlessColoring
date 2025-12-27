@@ -20,10 +20,17 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Security: Add Helmet for security headers
-// Note: Content Security Policy is disabled to avoid breaking CDN loading (Tailwind, Fonts)
-// and inline scripts/styles which are currently used in index.html.
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com", "aistudiocdn.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'", "aistudiocdn.com"],
+    },
+  },
 }));
 
 app.use(cors());
