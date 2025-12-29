@@ -175,6 +175,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
                 key={page.id}
                 page={page}
                 index={idx}
+                priority={idx < 8}
                 isFailed={!!failedImages[page.id]}
                 onImageError={handleImageError}
                 onFocus={handleFocusPage}
