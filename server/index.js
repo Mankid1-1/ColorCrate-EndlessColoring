@@ -18,9 +18,14 @@ const PORT = process.env.PORT || 3000;
 
 // Security: Trust the first proxy (e.g. load balancer) so rate limiting works correctly
 app.set('trust proxy', 1);
-
+ sentinel/enable-csp-551527118891739635
 // Security: Add Helmet for security headers with strict Content Security Policy
 // Allows necessary CDNs (Tailwind, Fonts, AI Studio) and inline scripts/styles needed for the UI.
+
+// Security: Add Helmet for security headers
+// Note: Content Security Policy is enabled but permissive for 'unsafe-inline' to support
+// the current architecture (Tailwind CDN, inline styles/scripts).
+ ColorCratemain
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -28,9 +33,14 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://aistudiocdn.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
+ sentinel/enable-csp-551527118891739635
       imgSrc: ["'self'", "data:", "blob:", "https://cdn.tailwindcss.com"],
       connectSrc: ["'self'", "https://aistudiocdn.com", "https://generativelanguage.googleapis.com"],
       upgradeInsecureRequests: [],
+
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+ ColorCratemain
     },
   },
 }));
