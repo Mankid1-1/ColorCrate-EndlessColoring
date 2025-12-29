@@ -106,15 +106,28 @@ export const useBookLibrary = () => {
 
     const closeBook = useCallback(() => setCurrentBookId(null), []);
 
+    const summaryCache = useRef<WeakMap<BookState, BookSummary> | null>(null);
+
     const library = useMemo(() => {
-        return Object.entries(books).map(([id, book]) => ({
-            id,
-            title: book.theme,
-            coverImage: book.pages.length > 0 ? (book.pages[0].modifiedUrl || book.pages[0].originalUrl) : null,
-            pageCount: book.pages.length,
-            createdAt: parseInt(id), // ID is timestamp
-            lastUpdated: book.lastUpdated
-        })).sort((a, b) => b.lastUpdated - a.lastUpdated);
+        if (!summaryCache.current) {
+            summaryCache.current = new WeakMap();
+        }
+
+        return Object.entries(books).map(([id, book]) => {
+            let summary = summaryCache.current!.get(book);
+            if (!summary) {
+                summary = {
+                    id,
+                    title: book.theme,
+                    coverImage: book.pages.length > 0 ? (book.pages[0].modifiedUrl || book.pages[0].originalUrl) : null,
+                    pageCount: book.pages.length,
+                    createdAt: parseInt(id), // ID is timestamp
+                    lastUpdated: book.lastUpdated
+                };
+                summaryCache.current.set(book, summary);
+            }
+            return summary;
+        }).sort((a, b) => b.lastUpdated - a.lastUpdated);
     }, [books]);
 
     return {
