@@ -244,10 +244,11 @@ const App: React.FC = () => {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {library.map((book) => (
+                                {library.map((book, index) => (
                                     <BookCard
                                         key={book.id}
                                         book={book}
+                                        priority={index < 4}
                                         onOpen={openBook}
                                         onDelete={deleteBook}
                                     />
