@@ -36,7 +36,11 @@ app.use(helmet({
 }));
 
 app.use(cors());
+ sentinel-fix-server-syntax-and-security-1828201352016467110
+// Security: Limit body size to prevent DoS
+
 // Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
+ ColorCratemain
 app.use(express.json({ limit: '10kb' }));
 
 // Rate Limiter for Generation Endpoint
