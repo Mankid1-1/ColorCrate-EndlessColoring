@@ -25,6 +25,10 @@ export const useBookLibrary = () => {
     const [isLoading, setIsLoading] = useState(true);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Cache for BookSummary objects to prevent unnecessary re-renders in BookCard
+    // Key: BookState object reference, Value: BookSummary object reference
+    const summaryCache = useRef(new WeakMap<BookState, BookSummary>());
+
     // Load Library on Mount
     useEffect(() => {
         const loadLibrary = async () => {
@@ -109,12 +113,19 @@ export const useBookLibrary = () => {
     const summaryCache = useRef<WeakMap<BookState, BookSummary> | null>(null);
 
     const library = useMemo(() => {
+ bolt-usebooklibrary-cache-9229789457640639765
+        return Object.entries(books).map(([id, book]) => {
+            // Check cache first to return stable object reference
+            let summary = summaryCache.current.get(book);
+
+
         if (!summaryCache.current) {
             summaryCache.current = new WeakMap();
         }
 
         return Object.entries(books).map(([id, book]) => {
             let summary = summaryCache.current!.get(book);
+ ColorCratemain
             if (!summary) {
                 summary = {
                     id,
