@@ -6,6 +6,7 @@ import { Tooltip } from './Tooltip';
 interface BookPageThumbnailProps {
     page: PageData;
     index: number;
+    priority?: boolean;
     isFailed: boolean;
     onImageError: (id: string) => void;
     onFocus: (id: string) => void;
@@ -15,6 +16,7 @@ interface BookPageThumbnailProps {
 export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
     page,
     index,
+    priority = false,
     isFailed,
     onImageError,
     onFocus,
@@ -32,9 +34,9 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
                 className="w-full h-full object-contain p-2"
                 alt={`Page ${index + 1}`}
                 onError={() => onImageError(page.id)}
-                loading="lazy"
+                loading={priority ? "eager" : "lazy"}
                 decoding="async"
-                fetchPriority="low"
+                fetchPriority={priority ? "high" : "low"}
             />
         )}
 
@@ -45,11 +47,12 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
 
         {/* Hover Overlay */}
         {!isFailed && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
                 <Tooltip content="View & Edit Page">
                     <button
                         onClick={() => onFocus(page.id)}
                         className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
+                        aria-label={`View and edit page ${index + 1}`}
                     >
                         <ZoomIn className="w-6 h-6" />
                     </button>
@@ -58,6 +61,7 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
                     <button
                         onClick={() => onPrint(page)}
                         className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
+                        aria-label={`Print page ${index + 1}`}
                     >
                         <Printer className="w-6 h-6" />
                     </button>

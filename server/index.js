@@ -20,6 +20,9 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Security: Add Helmet for security headers
+// Security: Add Helmet for security headers with strict Content Security Policy
+// Allows necessary CDNs (Tailwind, Fonts, AI Studio) and inline scripts/styles needed for the UI.
+ ColorCratemain
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -29,13 +32,20 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:"],
       connectSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "https://cdn.tailwindcss.com"],
+      connectSrc: ["'self'", "https://aistudiocdn.com", "https://generativelanguage.googleapis.com"],
       upgradeInsecureRequests: [],
     },
   },
 }));
 
 app.use(cors());
-app.use(express.json());
+ sentinel-fix-server-syntax-and-security-1828201352016467110
+// Security: Limit body size to prevent DoS
+
+// Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
+ ColorCratemain
+app.use(express.json({ limit: '10kb' }));
 
 // Rate Limiter for Generation Endpoint
 // Limit to 10 requests per minute per IP to prevent abuse and manage API costs
@@ -109,7 +119,11 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
              return res.status(400).json({ error: "Invalid variation index" });
         }
 
+        // SECURITY NOTE: We currently trust the client's 'tier' parameter.
+        // In a production environment with real payments, this must be verified against
+        // a server-side user/subscription database to prevent authorization bypass.
         const isPro = tier === 'PRO';
+
         // Model Selection
         const modelName = isPro
             ? 'gemini-3-pro-image-preview'
