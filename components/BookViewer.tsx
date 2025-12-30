@@ -175,6 +175,7 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
                 key={page.id}
                 page={page}
                 index={idx}
+                priority={idx < 8}
                 isFailed={!!failedImages[page.id]}
                 onImageError={handleImageError}
                 onFocus={handleFocusPage}
@@ -193,6 +194,11 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
                   <button 
                       onClick={() => setFocusedPageId(null)}
                       className="p-2 bg-white/10 text-white hover:bg-white/20 rounded-full transition-colors"
+ palette-a11y-polish-14648539969078226830
+                      aria-label="Close"
+
+                      aria-label="Close viewer"
+ ColorCratemain
                   >
                       <X className="w-6 h-6" />
                   </button>

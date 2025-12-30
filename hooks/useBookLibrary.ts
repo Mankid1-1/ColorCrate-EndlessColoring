@@ -25,6 +25,10 @@ export const useBookLibrary = () => {
     const [isLoading, setIsLoading] = useState(true);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Cache for BookSummary objects to prevent unnecessary re-renders in BookCard
+    // Key: BookState object reference, Value: BookSummary object reference
+    const summaryCache = useRef(new WeakMap<BookState, BookSummary>());
+
     // Load Library on Mount
     useEffect(() => {
         const loadLibrary = async () => {
@@ -106,15 +110,35 @@ export const useBookLibrary = () => {
 
     const closeBook = useCallback(() => setCurrentBookId(null), []);
 
+    const summaryCache = useRef<WeakMap<BookState, BookSummary> | null>(null);
+
     const library = useMemo(() => {
-        return Object.entries(books).map(([id, book]) => ({
-            id,
-            title: book.theme,
-            coverImage: book.pages.length > 0 ? (book.pages[0].modifiedUrl || book.pages[0].originalUrl) : null,
-            pageCount: book.pages.length,
-            createdAt: parseInt(id), // ID is timestamp
-            lastUpdated: book.lastUpdated
-        })).sort((a, b) => b.lastUpdated - a.lastUpdated);
+ bolt-usebooklibrary-cache-9229789457640639765
+        return Object.entries(books).map(([id, book]) => {
+            // Check cache first to return stable object reference
+            let summary = summaryCache.current.get(book);
+
+
+        if (!summaryCache.current) {
+            summaryCache.current = new WeakMap();
+        }
+
+        return Object.entries(books).map(([id, book]) => {
+            let summary = summaryCache.current!.get(book);
+ ColorCratemain
+            if (!summary) {
+                summary = {
+                    id,
+                    title: book.theme,
+                    coverImage: book.pages.length > 0 ? (book.pages[0].modifiedUrl || book.pages[0].originalUrl) : null,
+                    pageCount: book.pages.length,
+                    createdAt: parseInt(id), // ID is timestamp
+                    lastUpdated: book.lastUpdated
+                };
+                summaryCache.current.set(book, summary);
+            }
+            return summary;
+        }).sort((a, b) => b.lastUpdated - a.lastUpdated);
     }, [books]);
 
     return {
