@@ -4,11 +4,12 @@ import { BookSummary } from '../hooks/useBookLibrary';
 
 interface BookCardProps {
     book: BookSummary;
+    priority?: boolean;
     onOpen: (id: string) => void;
     onDelete: (id: string) => void;
 }
 
-export const BookCard = React.memo<BookCardProps>(({ book, onOpen, onDelete }) => {
+export const BookCard = React.memo<BookCardProps>(({ book, priority = false, onOpen, onDelete }) => {
     const [isConfirming, setIsConfirming] = React.useState(false);
 
     // Reset confirmation state when book id changes or after timeout
@@ -30,9 +31,9 @@ export const BookCard = React.memo<BookCardProps>(({ book, onOpen, onDelete }) =
                     <img
                         src={book.coverImage}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
+                        loading={priority ? "eager" : "lazy"}
                         decoding="async"
-                        fetchPriority="low"
+                        fetchPriority={priority ? "high" : "low"}
                         alt=""
                     />
                 ) : (
