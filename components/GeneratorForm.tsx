@@ -49,6 +49,8 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
   const [style, setStyle] = useState<ArtStyle>(ArtStyle.CARTOON);
   const [bookSize, setBookSize] = useState<BookSize>(BookSize.SINGLE);
 
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   // Reset bookSize if tier changes to FREE and current size is > 1
   useEffect(() => {
     if (tier === AppTier.FREE && bookSize > 1) {
@@ -70,7 +72,9 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
       setAgeGroup(ageGroups[Math.floor(Math.random() * ageGroups.length)]);
       setStyle(styles[Math.floor(Math.random() * styles.length)]);
 
-      // We don't randomize bookSize to avoid locking users out unexpectedly or defaulting to single always
+      // Focus input so user can immediately edit the randomized prompt
+      // We use a small timeout to ensure the value has visually updated (though not strictly necessary for focus)
+      setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   return (
@@ -98,6 +102,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
           <Tooltip content="Describe your coloring page idea here!" position="top" className="w-full">
             <div className="relative group w-full">
               <input 
+                ref={inputRef}
                 type="text" 
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
@@ -112,8 +117,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                     onClick={() => {
                       setTheme('');
                       // Return focus to input for better UX
-                      const input = document.querySelector('input[aria-label="Theme description"]') as HTMLInputElement;
-                      input?.focus();
+                      inputRef.current?.focus();
                     }}
                     className="p-1 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
                     aria-label="Clear theme"
@@ -135,7 +139,11 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
             {INSPIRATION_PROMPTS.map((prompt) => (
               <Tooltip key={prompt.text} content="Click to use this idea">
                 <button
-                  onClick={() => setTheme(prompt.text)}
+                  onClick={() => {
+                    setTheme(prompt.text);
+                    // Focus input to allow immediate editing
+                    inputRef.current?.focus();
+                  }}
                   className="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all text-sm font-bold text-slate-600 shadow-sm active:scale-95 group"
                   aria-label={`Use prompt: ${prompt.text}`}
                 >
