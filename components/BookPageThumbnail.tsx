@@ -6,6 +6,7 @@ import { Tooltip } from './Tooltip';
 interface BookPageThumbnailProps {
     page: PageData;
     index: number;
+    priority?: boolean;
     isFailed: boolean;
     onImageError: (id: string) => void;
     onFocus: (id: string) => void;
@@ -15,6 +16,7 @@ interface BookPageThumbnailProps {
 export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
     page,
     index,
+    priority = false,
     isFailed,
     onImageError,
     onFocus,
@@ -32,9 +34,9 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
                 className="w-full h-full object-contain p-2"
                 alt={`Page ${index + 1}`}
                 onError={() => onImageError(page.id)}
-                loading="lazy"
+                loading={priority ? "eager" : "lazy"}
                 decoding="async"
-                fetchPriority="low"
+                fetchPriority={priority ? "high" : "low"}
             />
         )}
 

@@ -36,7 +36,11 @@ app.use(helmet({
 }));
 
 app.use(cors());
+ sentinel-fix-server-syntax-and-security-1828201352016467110
 // Security: Limit body size to prevent DoS
+
+// Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
+ ColorCratemain
 app.use(express.json({ limit: '10kb' }));
 
 // Rate Limiter for Generation Endpoint
@@ -111,7 +115,11 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
              return res.status(400).json({ error: "Invalid variation index" });
         }
 
+        // SECURITY NOTE: We currently trust the client's 'tier' parameter.
+        // In a production environment with real payments, this must be verified against
+        // a server-side user/subscription database to prevent authorization bypass.
         const isPro = tier === 'PRO';
+
         // Model Selection
         const modelName = isPro
             ? 'gemini-3-pro-image-preview'
