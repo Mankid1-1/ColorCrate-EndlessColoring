@@ -58,6 +58,37 @@ describe('BookPageThumbnail', () => {
             <BookPageThumbnail
                 page={mockPage}
                 index={0}
+ bolt-optimize-bookviewer-loading-6538399125076276565
+                priority={true}
+                isFailed={false}
+                onImageError={mockHandlers.onImageError}
+                onFocus={mockHandlers.onFocus}
+                onPrint={mockHandlers.onPrint}
+            />
+        );
+
+        const img = screen.getByRole('img');
+        expect(img).toHaveAttribute('loading', 'eager');
+        expect(img).toHaveAttribute('fetchpriority', 'high');
+    });
+
+    it('uses lazy loading when priority is false', () => {
+        render(
+            <BookPageThumbnail
+                page={mockPage}
+                index={0}
+                priority={false}
+                isFailed={false}
+                onImageError={mockHandlers.onImageError}
+                onFocus={mockHandlers.onFocus}
+                onPrint={mockHandlers.onPrint}
+            />
+        );
+
+        const img = screen.getByRole('img');
+        expect(img).toHaveAttribute('loading', 'lazy');
+        expect(img).toHaveAttribute('fetchpriority', 'low');
+
                 isFailed={false}
                 priority={true}
                 {...mockHandlers}
@@ -82,5 +113,6 @@ describe('BookPageThumbnail', () => {
         const img = screen.getByAltText('Page 11');
         expect(img).toHaveAttribute('loading', 'lazy');
         expect(img).toHaveAttribute('fetchPriority', 'low');
+ ColorCratemain
     });
 });
