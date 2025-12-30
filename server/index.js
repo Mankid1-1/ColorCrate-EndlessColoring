@@ -19,8 +19,10 @@ const PORT = process.env.PORT || 3000;
 // Security: Trust the first proxy (e.g. load balancer) so rate limiting works correctly
 app.set('trust proxy', 1);
 
+// Security: Add Helmet for security headers
 // Security: Add Helmet for security headers with strict Content Security Policy
 // Allows necessary CDNs (Tailwind, Fonts, AI Studio) and inline scripts/styles needed for the UI.
+ ColorCratemain
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -28,6 +30,8 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://aistudiocdn.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "blob:", "https://cdn.tailwindcss.com"],
       connectSrc: ["'self'", "https://aistudiocdn.com", "https://generativelanguage.googleapis.com"],
       upgradeInsecureRequests: [],
