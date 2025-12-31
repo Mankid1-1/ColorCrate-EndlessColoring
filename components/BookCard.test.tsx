@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import { BookCard } from './BookCard';
@@ -12,9 +11,6 @@ vi.mock('lucide-react', () => ({
   Trash2: () => <div data-testid="trash-icon" />,
 }));
 
-// @ts-ignore
-window.document = window.document || {};
-
 describe('BookCard', () => {
   const mockBook: BookSummary = {
     id: '1',
@@ -22,10 +18,7 @@ describe('BookCard', () => {
     coverImage: 'test-image.jpg',
     pageCount: 5,
     lastUpdated: Date.now(),
-    theme: 'Test Theme',
-    ageGroup: 'Toddler' as any,
-    style: 'Cartoon' as any,
-    pages: []
+    createdAt: Date.now()
   };
 
   const mockOnOpen = vi.fn();

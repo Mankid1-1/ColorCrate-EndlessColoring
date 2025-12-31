@@ -110,22 +110,13 @@ export const useBookLibrary = () => {
 
     const closeBook = useCallback(() => setCurrentBookId(null), []);
 
-    const summaryCache = useRef<WeakMap<BookState, BookSummary> | null>(null);
-
     const library = useMemo(() => {
- bolt-usebooklibrary-cache-9229789457640639765
-        return Object.entries(books).map(([id, book]) => {
-            // Check cache first to return stable object reference
-            let summary = summaryCache.current.get(book);
-
-
         if (!summaryCache.current) {
             summaryCache.current = new WeakMap();
         }
 
         return Object.entries(books).map(([id, book]) => {
-            let summary = summaryCache.current!.get(book);
- ColorCratemain
+            let summary = summaryCache.current.get(book);
             if (!summary) {
                 summary = {
                     id,
