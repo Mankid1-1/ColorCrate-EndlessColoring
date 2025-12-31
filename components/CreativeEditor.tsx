@@ -349,7 +349,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
         <div className="flex justify-between items-center p-4 bg-slate-800 text-white">
             <div className="flex items-center gap-4">
                 <Tooltip content="Close without saving" position="bottom">
-                  <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full"><X /></button>
+                  <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full" aria-label="Close"><X /></button>
                 </Tooltip>
 
                 {/* Undo / Redo */}
@@ -359,6 +359,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
                             onClick={handleUndo}
                             disabled={historyIndex < 0}
                             className={`p-2 rounded hover:bg-slate-600 ${historyIndex < 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            aria-label="Undo"
                         >
                             <Undo className="w-5 h-5" />
                         </button>
@@ -368,6 +369,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
                             onClick={handleRedo}
                             disabled={historyIndex >= history.length - 1}
                             className={`p-2 rounded hover:bg-slate-600 ${historyIndex >= history.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            aria-label="Redo"
                         >
                             <Redo className="w-5 h-5" />
                         </button>
@@ -434,7 +436,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
                 {tool === 'sticker' && (
                     <div className="flex gap-4 overflow-x-auto pb-2 px-2 scrollbar-hide">
                         {STICKERS.map(s => (
-                            <button key={s} onClick={() => addSticker(s)} className="text-3xl hover:scale-125 transition-transform p-1">{s}</button>
+                            <button key={s} onClick={() => addSticker(s)} className="text-3xl hover:scale-125 transition-transform p-1" aria-label={`Add sticker ${s}`}>{s}</button>
                         ))}
                     </div>
                 )}
@@ -455,12 +457,12 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
                      <div className="flex justify-center items-center gap-4">
                         <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
                             <Tooltip content="Rotate Left">
-                                <button onClick={() => { handleRotate(-45); commitRotate(); }} className="p-2 hover:bg-white rounded shadow-sm">
+                                <button onClick={() => { handleRotate(-45); commitRotate(); }} className="p-2 hover:bg-white rounded shadow-sm" aria-label="Rotate Left">
                                     <RotateCcw className="w-4 h-4 text-slate-600" />
                                 </button>
                             </Tooltip>
                             <Tooltip content="Rotate Right">
-                                <button onClick={() => { handleRotate(45); commitRotate(); }} className="p-2 hover:bg-white rounded shadow-sm">
+                                <button onClick={() => { handleRotate(45); commitRotate(); }} className="p-2 hover:bg-white rounded shadow-sm" aria-label="Rotate Right">
                                     <RotateCw className="w-4 h-4 text-slate-600" />
                                 </button>
                             </Tooltip>
