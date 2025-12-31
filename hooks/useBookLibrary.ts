@@ -25,6 +25,10 @@ export const useBookLibrary = () => {
     const [isLoading, setIsLoading] = useState(true);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Cache for BookSummary objects to prevent unnecessary re-renders in BookCard
+    // Key: BookState object reference, Value: BookSummary object reference
+    const summaryCache = useRef(new WeakMap<BookState, BookSummary>());
+
     // Load Library on Mount
     useEffect(() => {
         const loadLibrary = async () => {
@@ -106,15 +110,13 @@ export const useBookLibrary = () => {
 
     const closeBook = useCallback(() => setCurrentBookId(null), []);
 
-    const summaryCache = useRef<WeakMap<BookState, BookSummary> | null>(null);
-
     const library = useMemo(() => {
         if (!summaryCache.current) {
             summaryCache.current = new WeakMap();
         }
 
         return Object.entries(books).map(([id, book]) => {
-            let summary = summaryCache.current!.get(book);
+            let summary = summaryCache.current.get(book);
             if (!summary) {
                 summary = {
                     id,

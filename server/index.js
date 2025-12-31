@@ -18,14 +18,9 @@ const PORT = process.env.PORT || 3000;
 
 // Security: Trust the first proxy (e.g. load balancer) so rate limiting works correctly
 app.set('trust proxy', 1);
- sentinel/enable-csp-551527118891739635
+
 // Security: Add Helmet for security headers with strict Content Security Policy
 // Allows necessary CDNs (Tailwind, Fonts, AI Studio) and inline scripts/styles needed for the UI.
-
-// Security: Add Helmet for security headers
-// Note: Content Security Policy is enabled but permissive for 'unsafe-inline' to support
-// the current architecture (Tailwind CDN, inline styles/scripts).
- ColorCratemain
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -33,20 +28,17 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://aistudiocdn.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
- sentinel/enable-csp-551527118891739635
       imgSrc: ["'self'", "data:", "blob:", "https://cdn.tailwindcss.com"],
       connectSrc: ["'self'", "https://aistudiocdn.com", "https://generativelanguage.googleapis.com"],
       upgradeInsecureRequests: [],
-
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'"],
- ColorCratemain
     },
   },
 }));
 
 app.use(cors());
-app.use(express.json());
+
+// Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
+app.use(express.json({ limit: '10kb' }));
 
 // Rate Limiter for Generation Endpoint
 // Limit to 10 requests per minute per IP to prevent abuse and manage API costs
@@ -120,7 +112,11 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
              return res.status(400).json({ error: "Invalid variation index" });
         }
 
+        // SECURITY NOTE: We currently trust the client's 'tier' parameter.
+        // In a production environment with real payments, this must be verified against
+        // a server-side user/subscription database to prevent authorization bypass.
         const isPro = tier === 'PRO';
+
         // Model Selection
         const modelName = isPro
             ? 'gemini-3-pro-image-preview'

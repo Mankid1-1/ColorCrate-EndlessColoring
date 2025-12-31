@@ -15,8 +15,8 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 
       className={`relative flex items-center justify-center ${className}`}
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
-      // Handle touch start for mobile tooltip behavior if needed, 
-      // though typically tooltips are hover-only or long-press on mobile.
+      onFocus={() => setIsVisible(true)}
+      onBlur={() => setIsVisible(false)}
     >
       {children}
       {isVisible && (

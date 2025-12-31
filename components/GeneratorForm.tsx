@@ -71,10 +71,16 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
       setAgeGroup(ageGroups[Math.floor(Math.random() * ageGroups.length)]);
       setStyle(styles[Math.floor(Math.random() * styles.length)]);
 
+ palette-generator-form-focus-improvement-1273565699741201130
       // Focus the input to encourage user customization
       inputRef.current?.focus();
 
       // We don't randomize bookSize to avoid locking users out unexpectedly or defaulting to single always
+
+      // Focus input so user can immediately edit the randomized prompt
+      // We use a small timeout to ensure the value has visually updated (though not strictly necessary for focus)
+      setTimeout(() => inputRef.current?.focus(), 0);
+ ColorCratemain
   };
 
   return (
@@ -141,6 +147,10 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 <button
                   onClick={() => {
                     setTheme(prompt.text);
+ palette-generator-form-focus-improvement-1273565699741201130
+
+                    // Focus input to allow immediate editing
+ ColorCratemain
                     inputRef.current?.focus();
                   }}
                   className="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition-all text-sm font-bold text-slate-600 shadow-sm active:scale-95 group"
