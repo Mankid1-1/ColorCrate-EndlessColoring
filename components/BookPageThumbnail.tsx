@@ -47,20 +47,12 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
 
         {/* Hover Overlay */}
         {!isFailed && (
- palette-a11y-polish-14648539969078226830
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
- ColorCratemain
                 <Tooltip content="View & Edit Page">
                     <button
                         onClick={() => onFocus(page.id)}
                         className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
- palette-a11y-polish-14648539969078226830
-                        aria-label="View and edit page"
-
                         aria-label={`View and edit page ${index + 1}`}
- ColorCratemain
                     >
                         <ZoomIn className="w-6 h-6" />
                     </button>
@@ -69,11 +61,7 @@ export const BookPageThumbnail = React.memo<BookPageThumbnailProps>(({
                     <button
                         onClick={() => onPrint(page)}
                         className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform shadow-lg"
- palette-a11y-polish-14648539969078226830
-                        aria-label="Print page"
-
                         aria-label={`Print page ${index + 1}`}
- ColorCratemain
                     >
                         <Printer className="w-6 h-6" />
                     </button>
