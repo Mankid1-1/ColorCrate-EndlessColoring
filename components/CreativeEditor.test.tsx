@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { CreativeEditor } from './CreativeEditor';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
@@ -47,5 +47,19 @@ describe('CreativeEditor Accessibility', () => {
     // Undo/Redo
     expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /redo/i })).toBeInTheDocument();
+  });
+
+  it('closes on Escape key when no item is selected', () => {
+    render(
+      <CreativeEditor
+        pageId="1"
+        baseImage="test.jpg"
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+    expect(mockOnClose).toHaveBeenCalled();
   });
 });
