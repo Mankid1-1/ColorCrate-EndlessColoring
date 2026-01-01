@@ -22,7 +22,8 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
   const [tool, setTool] = useState<EditorTool>('move');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
-  
+  const [loadedBaseImage, setLoadedBaseImage] = useState<HTMLImageElement | null>(null);
+
   // Drawing State
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState<{x: number, y: number}[]>([]);
@@ -45,15 +46,25 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     }
   }, [pageId]);
 
-  // Save Draft
+  // Load Base Image
   useEffect(() => {
-    // We only save if there are items, or if we need to clear an empty state that was previously saved
-    if (items.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
-    } else {
-      // If items are empty, check if we had a draft and remove it to keep clean
-      localStorage.removeItem(STORAGE_KEY);
-    }
+      const img = new Image();
+      img.src = baseImage;
+      img.crossOrigin = "anonymous";
+      img.onload = () => setLoadedBaseImage(img);
+  }, [baseImage]);
+
+  // Save Draft (Debounced)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+        if (items.length > 0) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
+        } else {
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }, 1000); // Debounce saves to prevent main thread blocking during drag operations
+
+    return () => clearTimeout(handler);
   }, [items, pageId]);
 
   // History Management
@@ -89,7 +100,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
   // Canvas Setup
   useEffect(() => {
     drawCanvas();
-  }, [baseImage, items, currentPath, selectedId]);
+  }, [loadedBaseImage, items, currentPath, selectedId]);
 
   const getCanvasCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -118,29 +129,17 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
-
-    // Load base image
-    const img = new Image();
-    img.src = baseImage;
-    img.crossOrigin = "anonymous";
     
     // Draw background white first
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Draw Base
-    if (img.complete) {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    } else {
-        img.onload = () => {
-             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-             drawItems(ctx);
-        }
+    if (loadedBaseImage) {
+         ctx.drawImage(loadedBaseImage, 0, 0, canvas.width, canvas.height);
     }
 
-    if (img.complete) {
-        drawItems(ctx);
-    }
+    drawItems(ctx);
   };
 
   const drawItems = (ctx: CanvasRenderingContext2D) => {
