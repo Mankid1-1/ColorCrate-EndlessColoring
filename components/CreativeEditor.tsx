@@ -343,6 +343,53 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     }, 50);
   }
 
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        // Ignore if user is typing in the text input or content editable element
+        if (
+            document.activeElement?.tagName === 'INPUT' ||
+            document.activeElement?.tagName === 'TEXTAREA' ||
+            (document.activeElement as HTMLElement)?.isContentEditable
+        ) {
+            return;
+        }
+
+        switch (e.key) {
+            case 'Delete':
+            case 'Backspace':
+                if (selectedId) handleDelete();
+                break;
+            case 'Escape':
+                if (selectedId) {
+                    setSelectedId(null);
+                } else {
+                    onClose();
+                }
+                break;
+            case 'z':
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.shiftKey) {
+                        handleRedo();
+                    } else {
+                        handleUndo();
+                    }
+                    e.preventDefault();
+                }
+                break;
+            case 'y':
+                if (e.ctrlKey || e.metaKey) {
+                    handleRedo();
+                    e.preventDefault();
+                }
+                break;
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, items, history, historyIndex, textInput, onClose]);
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
         {/* Header */}
