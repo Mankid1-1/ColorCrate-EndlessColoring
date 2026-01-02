@@ -14,3 +14,8 @@
 2. Allow `'unsafe-inline'` for scripts and styles to support the current build process and Tailwind configuration.
 3. Allow `data:` images for generated content.
 Future improvements should aim to remove `'unsafe-inline'` by using nonces or hashes, but this requires changes to the build pipeline.
+
+## 2026-01-02 - Hidden Backend Vulnerabilities
+**Vulnerability:** High severity DoS vulnerability in `qs` (transitive dependency) found in `server/` directory.
+**Learning:** `server/` has its own `package-lock.json` and dependencies which are easily overlooked when scanning the root.
+**Prevention:** Include `cd server && npm audit` in the project's security scanning or CI pipeline.
