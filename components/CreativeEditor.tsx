@@ -27,6 +27,28 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState<{x: number, y: number}[]>([]);
 
+  // Optimization: Memoize the base image to avoid re-creating/re-decoding on every render loop
+  const [loadedBaseImage, setLoadedBaseImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoadedBaseImage(null); // Reset to avoid showing stale image
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+        if (active) {
+            setLoadedBaseImage(img);
+        }
+    };
+    img.src = baseImage;
+
+    return () => {
+        active = false;
+        img.onload = null; // Clean up listener
+    };
+  }, [baseImage]);
+
   // Persistence Key
   const STORAGE_KEY = `cc_editor_draft_${pageId}`;
 
@@ -89,7 +111,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
   // Canvas Setup
   useEffect(() => {
     drawCanvas();
-  }, [baseImage, items, currentPath, selectedId]);
+  }, [loadedBaseImage, items, currentPath, selectedId]);
 
   const getCanvasCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -119,28 +141,16 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    // Load base image
-    const img = new Image();
-    img.src = baseImage;
-    img.crossOrigin = "anonymous";
-    
     // Draw background white first
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw Base
-    if (img.complete) {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    } else {
-        img.onload = () => {
-             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-             drawItems(ctx);
-        }
+    // Draw Base Image
+    if (loadedBaseImage) {
+        ctx.drawImage(loadedBaseImage, 0, 0, canvas.width, canvas.height);
     }
 
-    if (img.complete) {
-        drawItems(ctx);
-    }
+    drawItems(ctx);
   };
 
   const drawItems = (ctx: CanvasRenderingContext2D) => {
