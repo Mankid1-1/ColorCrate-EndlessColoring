@@ -30,6 +30,82 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
   // Persistence Key
   const STORAGE_KEY = `cc_editor_draft_${pageId}`;
 
+  // Keyboard Shortcuts
+  // Using ref to access latest state in event listener without re-binding
+  const stateRef = useRef({ items, selectedId, history, historyIndex });
+  useEffect(() => {
+    stateRef.current = { items, selectedId, history, historyIndex };
+  }, [items, selectedId, history, historyIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const { items, selectedId, history, historyIndex } = stateRef.current;
+
+      switch (e.key) {
+        case 'Delete':
+        case 'Backspace':
+          if (selectedId) {
+            const newItems = items.filter(i => i.id !== selectedId);
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(newItems);
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+            setItems(newItems);
+            setSelectedId(null);
+          }
+          break;
+        case 'Escape':
+          setSelectedId(null);
+          setTool('move');
+          break;
+        case 'z':
+          if (e.metaKey || e.ctrlKey) {
+            if (e.shiftKey) {
+              // Redo
+              if (historyIndex < history.length - 1) {
+                setHistoryIndex(historyIndex + 1);
+                setItems(history[historyIndex + 1]);
+                setSelectedId(null);
+              }
+              e.preventDefault();
+            } else {
+              // Undo
+              if (historyIndex > 0) {
+                setHistoryIndex(historyIndex - 1);
+                setItems(history[historyIndex - 1]);
+                setSelectedId(null);
+              } else if (historyIndex === 0) {
+                setHistoryIndex(-1);
+                setItems([]);
+                setSelectedId(null);
+              }
+              e.preventDefault(); // Prevent browser undo
+            }
+          }
+          break;
+        case 'y':
+          if (e.metaKey || e.ctrlKey) {
+            // Redo
+            if (historyIndex < history.length - 1) {
+              setHistoryIndex(historyIndex + 1);
+              setItems(history[historyIndex + 1]);
+              setSelectedId(null);
+            }
+            e.preventDefault();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Load Draft
   useEffect(() => {
     try {
