@@ -35,7 +35,29 @@ app.use(helmet({
   },
 }));
 
-app.use(cors());
+// Security: strict CORS configuration to prevent unauthorized access
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+    : [
+        'http://localhost:5173', // Vite Dev
+        'http://localhost:3000', // Node Server / Preview
+        'http://localhost:4173', // Vite Preview
+        'capacitor://localhost', // iOS/Android
+        'http://localhost',      // Android/local
+    ];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.warn(`[Security] Blocked CORS request from origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+}));
 
 // Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
 app.use(express.json({ limit: '10kb' }));

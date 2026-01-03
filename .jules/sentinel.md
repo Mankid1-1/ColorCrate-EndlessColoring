@@ -14,3 +14,8 @@
 2. Allow `'unsafe-inline'` for scripts and styles to support the current build process and Tailwind configuration.
 3. Allow `data:` images for generated content.
 Future improvements should aim to remove `'unsafe-inline'` by using nonces or hashes, but this requires changes to the build pipeline.
+
+## 2026-01-03 - Strict CORS Policy Enforced
+**Vulnerability:** The Express backend was using `cors()` with default settings, which sets `Access-Control-Allow-Origin: *`. This permitted any website (including malicious ones) to make requests to the API, potentially leading to resource exhaustion (DoS) or misuse of the API key quota via the user's browser.
+**Learning:** Even for internal APIs or prototypes, permissive CORS (`*`) is a significant risk if the API server is reachable by third parties (e.g., via localhost binding on a user's machine while they browse other sites).
+**Prevention:** Implemented a whitelist-based CORS policy in `server/index.js` that checks the `Origin` header against `process.env.ALLOWED_ORIGINS` or a safe default list (Vite dev, Capacitor).
