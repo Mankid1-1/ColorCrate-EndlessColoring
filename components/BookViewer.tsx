@@ -20,6 +20,20 @@ export const BookViewer: React.FC<BookViewerProps> = React.memo(({
   const [focusedPageId, setFocusedPageId] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+
+  // Close modal on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && focusedPageId) {
+        setFocusedPageId(null);
+      }
+    };
+
+    if (focusedPageId) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [focusedPageId]);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const focusedPage = pages.find(p => p.id === focusedPageId);
