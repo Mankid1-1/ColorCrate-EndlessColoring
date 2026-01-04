@@ -35,7 +35,27 @@ app.use(helmet({
   },
 }));
 
-app.use(cors());
+// CORS Configuration
+const allowedOriginsRaw = process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:4173';
+const allowedOrigins = allowedOriginsRaw.split(',').map(origin => origin.trim());
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`[Security] Blocked CORS request from: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies if needed
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
 app.use(express.json({ limit: '10kb' }));
