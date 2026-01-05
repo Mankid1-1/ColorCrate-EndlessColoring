@@ -16,6 +16,7 @@ const STICKERS = [
 
 export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImage, onClose, onSave }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const moveToolRef = useRef<HTMLButtonElement>(null);
   const [items, setItems] = useState<EditorItem[]>([]);
   const [history, setHistory] = useState<EditorItem[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -287,6 +288,8 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
       };
       addToHistory([...items, newItem]);
       setTool('move');
+      setSelectedId(newItem.id);
+      setTimeout(() => moveToolRef.current?.focus(), 0);
   };
 
   const addText = () => {
@@ -305,6 +308,8 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
       addToHistory([...items, newItem]);
       setTextInput('');
       setTool('move');
+      setSelectedId(newItem.id);
+      setTimeout(() => moveToolRef.current?.focus(), 0);
   };
 
   const handleDelete = () => {
@@ -406,7 +411,7 @@ export const CreativeEditor: React.FC<CreativeEditorProps> = ({ pageId, baseImag
         <div className="bg-white p-4 pb-8 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
             <div className="flex justify-center space-x-6 mb-6">
                 <Tooltip content="Select & Move items">
-                  <button onClick={() => setTool('move')} className={`p-4 rounded-2xl flex flex-col items-center gap-1 transition-all ${tool === 'move' ? 'bg-brand-50 text-brand-600 ring-2 ring-brand-500' : 'text-slate-400 hover:bg-slate-50'}`}>
+                  <button ref={moveToolRef} onClick={() => setTool('move')} className={`p-4 rounded-2xl flex flex-col items-center gap-1 transition-all ${tool === 'move' ? 'bg-brand-50 text-brand-600 ring-2 ring-brand-500' : 'text-slate-400 hover:bg-slate-50'}`}>
                       <MousePointer2 className="w-6 h-6" />
                       <span className="text-xs font-bold">Move</span>
                   </button>
