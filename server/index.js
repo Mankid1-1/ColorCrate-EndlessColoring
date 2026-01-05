@@ -35,7 +35,32 @@ app.use(helmet({
   },
 }));
 
-app.use(cors());
+// Security: Configure CORS to only allow trusted origins
+// Defaults to common development ports if not configured, but should be set in production.
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3001',
+  'http://localhost:4173'
+];
+
+const configuredOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : defaultOrigins;
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (configuredOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[Security] Blocked CORS request from: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 
 // Security: Limit JSON payload size to prevent DoS (standard payload is < 1KB)
 app.use(express.json({ limit: '10kb' }));
